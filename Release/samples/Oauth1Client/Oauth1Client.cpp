@@ -52,8 +52,8 @@ using namespace web::http::experimental::listener;
 static const utility::string_t s_linkedin_key(U(""));
 static const utility::string_t s_linkedin_secret(U(""));
 
-static const utility::string_t s_twitter_key(U(""));
-static const utility::string_t s_twitter_secret(U(""));
+static const utility::string_t s_twitter_key(U("OUZjYgBENuLTjwbihSF4NJVeC"));
+static const utility::string_t s_twitter_secret(U("ji0XH5scej92E2RfmTvlIen8oV5NQlUg39mhGLCuNDXurG7hkh"));
 
 //
 // Utility method to open browser on Windows, OS X and Linux systems.
@@ -266,7 +266,7 @@ public:
                                 U("https://api.twitter.com/oauth/request_token"),
                                 U("https://api.twitter.com/oauth/authorize"),
                                 U("https://api.twitter.com/oauth/access_token"),
-                                U("http://testhost.local:8890/"))
+                                U("http://127.0.0.1:8890"))
     {
     }
 
@@ -275,7 +275,8 @@ protected:
     {
         http_client api(U("https://api.twitter.com/1.1/"), m_http_config);
         ucout << "Requesting account information:" << std::endl;
-        ucout << api.request(methods::GET, U("account/settings.json")).get().extract_json().get() << std::endl;
+        //ucout << api.request(methods::GET, U("account/settings.json")).get().extract_json().get() << std::endl;
+        ucout << api.request(methods::GET, U("account/verify_credentials.json")).get().extract_json().get() << std::endl;
     }
 };
 
@@ -287,10 +288,10 @@ int main(int argc, char* argv[])
 {
     ucout << "Running OAuth 1.0 client sample..." << std::endl;
 
-    linkedin_session_sample linkedin;
+    //linkedin_session_sample linkedin;
     twitter_session_sample twitter;
 
-    linkedin.run();
+    //linkedin.run();
     twitter.run();
 
     ucout << "Done." << std::endl;
