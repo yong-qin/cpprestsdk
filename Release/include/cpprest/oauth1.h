@@ -246,6 +246,10 @@ public:
         , m_realm(std::move(realm))
         , m_method(std::move(method))
         , m_is_authorization_completed(false)
+        , m_is_gamelib_extend(false)
+        , m_body_hash(utility::string_t())
+        , m_requestor_id(utility::string_t())
+        , m_as_hash(utility::string_t())
     {
     }
 
@@ -400,6 +404,46 @@ public:
     void set_realm(utility::string_t realm) { m_realm = std::move(realm); }
 
     /// <summary>
+    /// </summary>
+    /// <returns>
+    void set_gamelib_extend(bool is_gamelib_extend) { m_is_gamelib_extend = is_gamelib_extend; }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    bool is_gamelib_extend() const { return m_is_gamelib_extend; }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    void set_body_hash(utility::string_t body_hash) { m_body_hash = std::move(body_hash); }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    const utility::string_t& body_hash() const { return m_body_hash; }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    void set_requestor_id(utility::string_t requestor_id) { m_requestor_id = std::move(requestor_id); }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    const utility::string_t& requestor_id() const { return m_requestor_id; }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    void set_as_hash(utility::string_t as_hash) { m_as_hash = std::move(as_hash); }
+
+    /// <summary>
+    /// </summary>
+    /// <returns>
+    const utility::string_t& as_hash() const { return m_as_hash; }
+
+    /// <summary>
     /// Returns enabled state of the configuration.
     /// The oauth1_handler will perform OAuth 1.0 authentication only if
     /// this method returns true.
@@ -422,6 +466,14 @@ public:
     {
         auto text(_build_signature_base_string(std::move(request), std::move(state)));
         auto digest(_hmac_sha1(_build_key(), std::move(text)));
+        auto signature(utility::conversions::to_base64(std::move(digest)));
+        return signature;
+    }
+    // TODO
+    utility::string_t _build_rsa_sha1_signature(http_request request, details::oauth1_state state) const
+    {
+        auto text(_build_signature_base_string(std::move(request), std::move(state)));
+        auto digest(_rsa_sha1(_build_rsa_key(), std::move(text)));
         auto signature(utility::conversions::to_base64(std::move(digest)));
         return signature;
     }
@@ -510,6 +562,9 @@ private:
     _ASYNCRTIMP static std::vector<unsigned char> __cdecl _hmac_sha1(const utility::string_t& key,
                                                                      const utility::string_t& data);
 
+    _ASYNCRTIMP static std::vector<unsigned char> __cdecl _rsa_sha1(const utility::string_t& key,
+                                                                     const utility::string_t& data);
+
     static utility::string_t _build_base_string_uri(const uri& u);
 
     utility::string_t _build_normalized_parameters(web::http::uri u, const details::oauth1_state& state) const;
@@ -518,7 +573,17 @@ private:
 
     utility::string_t _build_key() const
     {
+        if (m_is_gamelib_extend)
+        {
+            return uri::encode_data_string(consumer_secret());
+        }
         return uri::encode_data_string(consumer_secret()) + _XPLATSTR("&") + uri::encode_data_string(m_token.secret());
+    }
+
+    utility::string_t _build_rsa_key() const
+    {
+        // TODO
+        return uri::encode_data_string(consumer_secret());
     }
 
     void _authenticate_request(http_request& req) { _authenticate_request(req, _generate_auth_state()); }
@@ -544,6 +609,12 @@ private:
 
     utility::nonce_generator m_nonce_generator;
     bool m_is_authorization_completed;
+    
+    // extend for gamelib
+    bool m_is_gamelib_extend;
+    utility::string_t m_body_hash;
+    utility::string_t m_requestor_id;
+    utility::string_t m_as_hash;
 };
 
 } // namespace experimental

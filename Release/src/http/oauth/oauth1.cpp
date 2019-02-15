@@ -105,6 +105,13 @@ cleanup:
 
     return hash;
 }
+
+std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key, const utility::string_t& data)
+{
+    std::vector<unsigned char> hash;
+    // TODO
+    return hash;
+}
 #pragma warning(pop)
 
 #elif defined(_WIN32) && defined(__cplusplus_winrt) // Windows RT
@@ -130,6 +137,12 @@ std::vector<unsigned char> oauth1_config::_hmac_sha1(const utility::string_t& ke
     return std::vector<unsigned char>(arr->Data, arr->Data + arr->Length);
 }
 
+std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key, const utility::string_t& data)
+{
+    std::vector<unsigned char> hash;
+    // TODO
+    return hash;
+}
 #else // Linux, Mac OS X
 
 #include <openssl/hmac.h>
@@ -150,6 +163,12 @@ std::vector<unsigned char> oauth1_config::_hmac_sha1(const utility::string_t& ke
     return std::vector<unsigned char>(digest, digest + digest_len);
 }
 
+std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key, const utility::string_t& data)
+{
+    std::vector<unsigned char> hash;
+    // TODO
+    return hash;
+}
 #endif
 //
 // ...End of platform-dependent _hmac_sha1() block.
@@ -199,6 +218,20 @@ utility::string_t oauth1_config::_build_normalized_parameters(web::http::uri u, 
     queries.push_back(oauth1_strings::signature_method + U("=") + method());
     queries.push_back(oauth1_strings::timestamp + U("=") + state.timestamp());
     queries.push_back(oauth1_strings::nonce + U("=") + state.nonce());
+    // extend fro gamelib
+    if (m_is_gamelib_extend && !m_body_hash.empty())
+    {
+        queries.push_back(oauth1_strings::body_hash + U("=") + web::uri::encode_data_string(m_body_hash));
+    }
+    if (m_is_gamelib_extend && !m_requestor_id.empty())
+    {
+        queries.push_back(oauth1_strings::requestor_id + U("=") + web::uri::encode_data_string(m_requestor_id));
+    }
+    if (m_is_gamelib_extend && !m_as_hash.empty())
+    {
+        queries.push_back(oauth1_strings::as_hash + U("=") + web::uri::encode_data_string(m_as_hash));
+    }
+
     if (!state.extra_key().empty())
     {
         queries.push_back(state.extra_key() + U("=") + web::uri::encode_data_string(state.extra_value()));
@@ -263,6 +296,10 @@ utility::string_t oauth1_config::_build_signature(http_request request, oauth1_s
     if (oauth1_methods::hmac_sha1 == method())
     {
         return _build_hmac_sha1_signature(std::move(request), std::move(state));
+    }
+    else if (oauth1_methods::rsa_sha1 == method())
+    {
+        return _build_rsa_sha1_signature(std::move(request), std::move(state));
     }
     else if (oauth1_methods::plaintext == method())
     {
@@ -366,6 +403,32 @@ void oauth1_config::_authenticate_request(http_request& request, oauth1_state st
     authHeader += _XPLATSTR("=\"");
     authHeader += state.nonce();
     authHeader += _XPLATSTR("\", ");
+
+    // extend header for gamelib
+    if (m_is_gamelib_extend && !m_body_hash.empty())
+    {
+        authHeader += oauth1_strings::body_hash;
+        authHeader += _XPLATSTR("=\"");
+        authHeader += web::uri::encode_data_string(m_body_hash);
+        authHeader += _XPLATSTR("\", ");
+    }
+
+    if (m_is_gamelib_extend && !m_requestor_id.empty())
+    {
+        authHeader += oauth1_strings::requestor_id;
+        authHeader += _XPLATSTR("=\"");
+        authHeader += web::uri::encode_data_string(m_requestor_id);
+        authHeader += _XPLATSTR("\", ");
+    }
+
+    if (m_is_gamelib_extend && !m_as_hash.empty())
+    {
+        authHeader += oauth1_strings::as_hash;
+        authHeader += _XPLATSTR("=\"");
+        authHeader += web::uri::encode_data_string(m_as_hash);
+        authHeader += _XPLATSTR("\", ");
+    }
+
     authHeader += oauth1_strings::signature;
     authHeader += _XPLATSTR("=\"");
     authHeader += uri::encode_data_string(_build_signature(request, state));

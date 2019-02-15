@@ -161,6 +161,7 @@ DAT(utf16be,                        "utf-16be")
 
 #ifdef _OAUTH1_METHODS
 DAT(hmac_sha1,                      _XPLATSTR("HMAC-SHA1"))
+DAT(rsa_sha1,                       _XPLATSTR("RSA-SHA1"))
 DAT(plaintext,                      _XPLATSTR("PLAINTEXT"))
 #endif // _OAUTH1_METHODS
 
@@ -177,6 +178,10 @@ DAT(token,                          "oauth_token")
 DAT(token_secret,                   "oauth_token_secret")
 DAT(verifier,                       "oauth_verifier")
 DAT(version,                        "oauth_version")
+// NOTE: extend for gamelib
+DAT(body_hash,                      "oauth_body_hash")
+DAT(requestor_id,                   "xoauth_requestor_id")
+DAT(as_hash,                        "xoauth_as_hash")
 #endif // _OAUTH1_STRINGS
 
 #ifdef _OAUTH2_STRINGS
