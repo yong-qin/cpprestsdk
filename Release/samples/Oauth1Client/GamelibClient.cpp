@@ -6,21 +6,11 @@ using namespace web::http;
 using namespace web::http::client;
 using namespace web::http::oauth1::experimental;
 
-#include "boost/uuid/detail/sha1.hpp"
+#include <openssl/sha.h>
 
 utility::string_t _build_body_hash(utility::string_t body) {
-  boost::uuids::detail::sha1 sha1;
-  unsigned int digest[5];
-  sha1.process_bytes(body.c_str(), body.length());
-  sha1.get_digest(digest);
-  unsigned char* tmp = reinterpret_cast<unsigned char *>(digest);
-  unsigned char digest_array[sizeof(digest)];
-  for(int i = 0; i < 5; i++) {
-    digest_array[i*4]   = tmp[i*4+3];
-    digest_array[i*4+1] = tmp[i*4+2];
-    digest_array[i*4+2] = tmp[i*4+1];
-    digest_array[i*4+3] = tmp[i*4];
-  }
+  unsigned char digest_array[SHA_DIGEST_LENGTH];
+  SHA1((unsigned char *)body.c_str(), body.length(), digest_array);
   auto array = std::vector<unsigned char>(digest_array, std::end(digest_array));
   return utility::conversions::to_base64(std::move(array));
 }
