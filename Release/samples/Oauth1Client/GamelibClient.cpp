@@ -6,12 +6,12 @@ using namespace web::http;
 using namespace web::http::client;
 using namespace web::http::oauth1::experimental;
 
+#include <boost/locale.hpp>
 #include <openssl/sha.h>
 
 utility::string_t _build_body_hash(utility::string_t body)
 {
-    auto body_str = utility::conversions::utf16_to_utf8(body);
-
+    auto body_str = boost::locale::conv::utf_to_utf<char>(body);
     unsigned char digest_array[SHA_DIGEST_LENGTH];
     SHA1((unsigned char*)body_str.c_str(), body_str.length(), digest_array);
     auto array = std::vector<unsigned char>(digest_array, std::end(digest_array));
@@ -98,7 +98,7 @@ pplx::task<utility::string_t> InitializeAPI()
             return response.extract_json();
         })
         .then([=](json::value json) {
-            std::wcout << json.serialize() << std::endl;
+            ucout << json.serialize() << std::endl;
 
             if (!json[U("uuid")].is_null() && json[U("uuid")].is_string())
             {
