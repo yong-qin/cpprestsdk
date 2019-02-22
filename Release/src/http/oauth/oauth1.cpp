@@ -106,12 +106,6 @@ cleanup:
     return hash;
 }
 
-std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key, const utility::string_t& data)
-{
-    std::vector<unsigned char> hash;
-    // TODO
-    return hash;
-}
 #pragma warning(pop)
 
 #elif defined(_WIN32) && defined(__cplusplus_winrt) // Windows RT
@@ -137,12 +131,6 @@ std::vector<unsigned char> oauth1_config::_hmac_sha1(const utility::string_t& ke
     return std::vector<unsigned char>(arr->Data, arr->Data + arr->Length);
 }
 
-std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key, const utility::string_t& data)
-{
-    std::vector<unsigned char> hash;
-    // TODO
-    return hash;
-}
 #else // Linux, Mac OS X
 
 #include <openssl/hmac.h>
@@ -163,13 +151,40 @@ std::vector<unsigned char> oauth1_config::_hmac_sha1(const utility::string_t& ke
     return std::vector<unsigned char>(digest, digest + digest_len);
 }
 
-std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key, const utility::string_t& data)
-{
-    std::vector<unsigned char> hash;
-    // TODO
-    return hash;
-}
 #endif
+
+std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key_pem, const utility::string_t& data)
+{
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    SHA1((unsigned char *)data.c_str(), data.length(), digest);
+
+    BIO *key_bio = BIO_new_mem_buf(key_pem.c_str(), key_pem.length());
+    // read PKCS1 or PKCS8 format PEM
+    RSA *key = PEM_read_bio_RSAPrivateKey(key_bio, NULL, NULL, NULL);
+    if (key == NULL) {
+        BIO_free_all(key_bio);
+        return std::vector<unsigned char>();
+    }
+    unsigned char *signature = (unsigned char *)calloc(RSA_size(key), sizeof(unsigned char));
+    if (signature == NULL) {
+        BIO_free_all(key_bio);
+        RSA_free(key);
+        return std::vector<unsigned char>();
+    }
+    unsigned int signature_len = 0;
+    if (RSA_sign(NID_sha1, digest, SHA_DIGEST_LENGTH, signature, &signature_len, key) <= 0) {
+        BIO_free_all(key_bio);
+        RSA_free(key);
+        free(signature);
+        return std::vector<unsigned char>();
+    }
+    auto signature_vec = std::vector<unsigned char>(signature,  signature + signature_len);
+    BIO_free_all(key_bio);
+    RSA_free(key);
+    free(signature);
+    return signature_vec;
+}
+
 //
 // ...End of platform-dependent _hmac_sha1() block.
 //
@@ -421,8 +436,10 @@ void oauth1_config::_authenticate_request(http_request& request, oauth1_state st
         authHeader += _XPLATSTR("\", ");
     }
 
-    if (m_is_gamelib_extend && !m_as_hash.empty())
+    if (m_is_gamelib_extend && !m_requestor_id.empty() && !m_token.secret().empty())
     {
+        utility::string_t as_str = consumer_secret() + state.timestamp();
+        m_as_hash.assign(utility::conversions::to_base64(_rsa_sha1(m_token.secret(), as_str)));
         authHeader += oauth1_strings::as_hash;
         authHeader += _XPLATSTR("=\"");
         authHeader += web::uri::encode_data_string(m_as_hash);

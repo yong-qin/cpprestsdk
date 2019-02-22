@@ -434,16 +434,6 @@ public:
     const utility::string_t& requestor_id() const { return m_requestor_id; }
 
     /// <summary>
-    /// </summary>
-    /// <returns>
-    void set_as_hash(utility::string_t as_hash) { m_as_hash = std::move(as_hash); }
-
-    /// <summary>
-    /// </summary>
-    /// <returns>
-    const utility::string_t& as_hash() const { return m_as_hash; }
-
-    /// <summary>
     /// Returns enabled state of the configuration.
     /// The oauth1_handler will perform OAuth 1.0 authentication only if
     /// this method returns true.
@@ -469,7 +459,7 @@ public:
         auto signature(utility::conversions::to_base64(std::move(digest)));
         return signature;
     }
-    // TODO
+
     utility::string_t _build_rsa_sha1_signature(http_request request, details::oauth1_state state) const
     {
         auto text(_build_signature_base_string(std::move(request), std::move(state)));
@@ -552,7 +542,7 @@ private:
 
     oauth1_config() : m_is_authorization_completed(false) {}
 
-    utility::string_t _generate_nonce() { return m_nonce_generator.generate(); }
+    utility::string_t _generate_nonce() { return m_nonce_generator.generate() + (char)(rand()%('Z' - 'A' + 1) + 'A'); }
 
     static utility::string_t _generate_timestamp()
     {
@@ -575,15 +565,14 @@ private:
     {
         if (m_is_gamelib_extend)
         {
-            return uri::encode_data_string(consumer_secret());
+            return consumer_secret();
         }
         return uri::encode_data_string(consumer_secret()) + _XPLATSTR("&") + uri::encode_data_string(m_token.secret());
     }
 
     utility::string_t _build_rsa_key() const
     {
-        // TODO
-        return uri::encode_data_string(consumer_secret());
+        return m_token.secret();
     }
 
     void _authenticate_request(http_request& req) { _authenticate_request(req, _generate_auth_state()); }
