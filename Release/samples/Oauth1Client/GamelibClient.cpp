@@ -47,28 +47,28 @@ private:
             goto free_and_return;
         }
         keylen = BIO_pending(private_key_bio);
-        pem_key = (char *)::calloc(keylen, sizeof(char));
+        pem_key = (char *)::calloc(keylen + 1, sizeof(char));
         if (BIO_read(private_key_bio, pem_key, keylen) <= 0) {
             ::free(pem_key);
             goto free_and_return;
         }
-        private_key_pem.assign(pem_key);
+        private_key_pem.assign(utility::conversions::to_string_t(std::string(pem_key)));
         ::free(pem_key);
 
         // get public key pem
-        //  PKCS#1 format
+        // PKCS#1 format
         //if (PEM_write_bio_RSAPublicKey(public_key_bio, rsa) <= 0) {
         // PKCS#8 format
         if (PEM_write_bio_RSA_PUBKEY(public_key_bio, rsa) <= 0) {
             goto free_and_return;
         }
         keylen = BIO_pending(public_key_bio);
-        pem_key = (char *)::calloc(keylen, sizeof(char));
+        pem_key = (char *)::calloc(keylen + 1, sizeof(char));
         if (BIO_read(public_key_bio, pem_key, keylen) <= 0) {
             ::free(pem_key);
             goto free_and_return;
         }
-        public_key_pem.assign(pem_key);
+        public_key_pem.assign(utility::conversions::to_string_t(std::string(pem_key)));
         ::free(pem_key);
         ret = true;
 

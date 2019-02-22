@@ -15,6 +15,8 @@
 
 #include "cpprest/asyncrt_utils.h"
 
+#include <boost/locale.hpp>
+
 #if !defined(CPPREST_TARGET_XP)
 
 using namespace utility;
@@ -153,12 +155,19 @@ std::vector<unsigned char> oauth1_config::_hmac_sha1(const utility::string_t& ke
 
 #endif
 
-std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key_pem, const utility::string_t& data)
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#include <openssl/sha.h>
+
+std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key_pem_t, const utility::string_t& data_t)
 {
+    auto key_pem = boost::locale::conv::utf_to_utf<char>(key_pem_t);
+    auto data = boost::locale::conv::utf_to_utf<char>(data_t);
+
     unsigned char digest[SHA_DIGEST_LENGTH];
     SHA1((unsigned char *)data.c_str(), data.length(), digest);
 
-    BIO *key_bio = BIO_new_mem_buf(key_pem.c_str(), key_pem.length());
+    BIO *key_bio = BIO_new_mem_buf((void *)key_pem.c_str(), (int)key_pem.length());
     // read PKCS1 or PKCS8 format PEM
     RSA *key = PEM_read_bio_RSAPrivateKey(key_bio, NULL, NULL, NULL);
     if (key == NULL) {
