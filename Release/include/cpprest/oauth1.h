@@ -542,7 +542,11 @@ private:
 
     oauth1_config() : m_is_authorization_completed(false) {}
 
-    utility::string_t _generate_nonce() { return m_nonce_generator.generate() + (char)(rand()%('Z' - 'A' + 1) + 'A'); }
+    utility::string_t _generate_nonce()
+    {
+        auto dur = std::chrono::system_clock::now().time_since_epoch().count();
+        return m_nonce_generator.generate() + utility::conversions::to_string_t(std::string(1, dur % ('Z' - 'A' + 1) + 'A'));
+    }
 
     static utility::string_t _generate_timestamp()
     {
