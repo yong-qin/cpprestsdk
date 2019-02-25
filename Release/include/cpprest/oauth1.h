@@ -545,7 +545,7 @@ private:
     utility::string_t _generate_nonce()
     {
         auto dur = std::chrono::system_clock::now().time_since_epoch().count();
-        return m_nonce_generator.generate() + utility::conversions::to_string_t(std::string(1, dur % ('Z' - 'A' + 1) + 'A'));
+        return m_nonce_generator.generate() + utility::conversions::to_string_t(std::to_string(dur%1000));
     }
 
     static utility::string_t _generate_timestamp()
