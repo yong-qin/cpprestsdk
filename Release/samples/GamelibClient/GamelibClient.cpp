@@ -8,7 +8,7 @@
 #include <openssl/md5.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
-#include <openssl/sha.h>thread
+#include <openssl/sha.h>
 
 using namespace web;
 using namespace web::http;
@@ -129,8 +129,9 @@ private:
         auto datetime_str = datetime.to_string(utility::datetime::ISO_8601);
         auto str = datetime_str.substr(0, 4) + datetime_str.substr(5, 2) + datetime_str.substr(8, 2) +
                         datetime_str.substr(11, 2) + datetime_str.substr(14, 2) + datetime_str.substr(17, 2);
+        auto token_str = boost::locale::conv::utf_to_utf<char>(str);
         unsigned char digest_array[MD5_DIGEST_LENGTH];
-        MD5((unsigned char*)str.c_str(), str.length(), digest_array);
+        MD5((unsigned char*)token_str.c_str(), token_str.length(), digest_array);
         std::stringstream ss1;
         for (int i = 0; i < sizeof(digest_array); i++)
         {
