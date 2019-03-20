@@ -20,6 +20,7 @@ class GamelibClient
 {
 private:
     // Steam Callback
+
     STEAM_CALLBACK_MANUAL(GamelibClient,
                           OnMicroTxnAuthorizationResponse,
                           MicroTxnAuthorizationResponse_t,
@@ -40,9 +41,15 @@ private:
     utility::string_t m_purchase_id;
     bool m_need_caution_for_minors;
     utility::string_t m_external_order_id;
-
+  
+    utility::string_t m_steam_id;
+    utility::string_t m_session_ticket;
+    utility::string_t m_language;
+  
     bool m_commit_purchase = false;
-
+  
+    bool m_initialized = false;
+  
     bool _generate_rsa_keypair(utility::string_t& private_key_pem, utility::string_t& public_key_pem)
     {
         bool ret = false;
@@ -229,8 +236,34 @@ private:
 public:
     void init()
     {
+        m_requestor_id = U("");
+        if (m_initialized) return;
         m_CallbackMicroTxnAuthorizationResponse.Register(this, &GamelibClient::OnMicroTxnAuthorizationResponse);
         m_CallbackGetAuthSessionTicketResponse.Register(this, &GamelibClient::OnGetAuthSessionTicketResponse);
+        // Get Steam ID
+        CSteamID steam_id = SteamUser()->GetSteamID();
+        uint64 steam_id_int = steam_id.ConvertToUint64();
+        ucout << "SteamID:" << steam_id_int << std::endl;
+        std::string steam_id_str = std::to_string(steam_id.ConvertToUint64());
+        m_steam_id = utility::conversions::to_string_t(steam_id_str); // steam ID
+
+        // Get Session Ticket to confirm SteamID on Server
+        uint8 ticket[1024];
+        uint32 ticket_len = 0;
+        HAuthTicket hAuthTicket = SteamUser()->GetAuthSessionTicket(ticket, sizeof(ticket), &ticket_len);
+        std::stringstream ss;
+        for (int i = 0; i < (int)ticket_len; i++)
+        {
+          ss << std::setfill('0') << std::setw(2) << std::hex << +ticket[i];
+        }
+        m_session_ticket = utility::conversions::to_string_t(ss.str());
+        ucout << "Session Ticket:" << m_session_ticket << std::endl;
+      
+        // Get Current Game Language
+        const char* lang = SteamApps()->GetCurrentGameLanguage();
+        ucout << "Language:" << lang << std::endl;
+        m_language = utility::conversions::to_string_t(std::string(lang));
+        m_initialized = true;
     }
 
     pplx::task<utility::string_t> initializeAPI()
@@ -280,18 +313,23 @@ public:
         params[U("translated_name")] = json::value::string(U(""));
         params[U("formatted_price")] = json::value::string(U(""));
         params[U("price")] = json::value::string(U("100"));
-        CSteamID steam_id = SteamUser()->GetSteamID();
-        std::string steam_id_str = std::to_string(steam_id.ConvertToUint64());
-        params[U("id_token")] = json::value::string(utility::conversions::to_string_t(steam_id_str)); // steam ID
-
+        params[U("id_token")] = json::value::string(m_steam_id); // steam ID
+      
+        m_purchase_id = U("");
+        m_need_caution_for_minors = false;
+        m_external_order_id = U("");
+        m_commit_purchase = false;
+      
         return _request(U("/v1.0/payment/purchase"), methods::POST, params).then([=](json::value response_json) {
             ucout << response_json.serialize() << std::endl;
             json::value entry = response_json[U("entry")];
             m_purchase_id = entry[U("purchase_id")].as_string();
             m_need_caution_for_minors = entry[U("need_caution_for_minors")].as_bool();
-            if (!entry[U("external_order_id")].is_null() && entry[U("external_order_id")].is_string())
+            if (!entry[U("external_order_id")].is_null())
             {
-                m_external_order_id = entry[U("external_order_id")].as_string();
+              std::stringstream ss;
+              ss << entry[U("external_order_id")];
+              m_external_order_id = utility::conversions::to_string_t(ss.str());
             }
         });
     }
@@ -301,11 +339,9 @@ public:
         json::value params;
         params[U("purchase_id")] = json::value::string(m_purchase_id);
         params[U("receipt")] = json::value::string(U(""));
-        CSteamID steam_id = SteamUser()->GetSteamID();
-        std::string steam_id_str = std::to_string(steam_id.ConvertToUint64());
-        params[U("id_token")] = json::value::string(utility::conversions::to_string_t(steam_id_str)); // steam ID
+        params[U("id_token")] = json::value::string(m_steam_id); // steam ID
 
-        return _request(U("/v1.0/payment/commit"), methods::POST, params).then([=](json::value response_json) {
+        return _request(U("/v1.0/payment/purchase/commit"), methods::POST, params).then([=](json::value response_json) {
             ucout << response_json.serialize() << std::endl;
         });
     }
@@ -319,7 +355,11 @@ void GamelibClient::OnMicroTxnAuthorizationResponse(MicroTxnAuthorizationRespons
     ucout << U("AppID:") << pCallback->m_unAppID << std::endl;
     ucout << U("OrderID:") << pCallback->m_ulOrderID << std::endl;
     ucout << U("Authorized:") << pCallback->m_bAuthorized << std::endl;
-    m_commit_purchase = true;
+  
+    auto order_id = utility::conversions::to_string_t(std::to_string(pCallback->m_ulOrderID));
+    if (pCallback->m_bAuthorized && m_external_order_id == order_id) {
+        m_commit_purchase = true;
+    }
 }
 
 void GamelibClient::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* pCallback)
@@ -327,85 +367,42 @@ void GamelibClient::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_
     ucout << U("GetAuthSessionTicketResponse!") << std::endl;
 }
 
-extern "C" void __cdecl SteamAPIDebugTextHook(int nSeverity, const char* pchDebugText)
+GamelibClient gamelibclient;
+
+int PurchaseFlow()
 {
-    printf("SteamAPIDebugText: %s", pchDebugText);
-}
-
-int main(int argc, char* argv[])
-{
-    // in develoment mode define app id in steam_appid.txt
-    if (SteamAPI_RestartAppIfNecessary(0))
-    { // 1042610
-        ucout << "Steam RestartAppIfNecessary error!" << std::endl;
-        return 1;
-    }
-
-    if (!SteamAPI_Init())
-    {
-        ucout << "Steam Init error!" << std::endl;
-        return 1;
-    }
-
-    SteamClient()->SetWarningMessageHook(&SteamAPIDebugTextHook);
-    if (!SteamUser()->BLoggedOn())
-    {
-        ucout << "Steam user is not logged in" << std::endl;
-        return -1;
-    }
-
-    // Get Steam ID
-    CSteamID steam_id = SteamUser()->GetSteamID();
-    uint64 steam_id_int = steam_id.ConvertToUint64();
-    ucout << "SteamID:" << steam_id_int << std::endl;
-
-    // Get Session Ticket to confirm SteamID on Server
-    uint8 ticket[1024];
-    uint32 ticket_len = 0;
-    HAuthTicket hAuthTicket = SteamUser()->GetAuthSessionTicket(ticket, sizeof(ticket), &ticket_len);
-    std::stringstream ss;
-    for (int i = 0; i < (int)ticket_len; i++)
-    {
-        ss << std::setfill('0') << std::setw(2) << std::hex << +ticket[i];
-    }
-    auto ticket_str = utility::conversions::to_string_t(ss.str());
-    // auto ticket_str = utility::conversions::to_base64(std::vector<unsigned char>(ticket,  ticket + ticket_len));
-    ucout << "Session Ticket:" << ticket_str << std::endl;
-
-    // Get Current Game Language
-    const char* lang = SteamApps()->GetCurrentGameLanguage();
-    ucout << "Language:" << lang << std::endl;
-
+    // The dialog to open. Valid options are: "friends", "community", "players", "settings", "officialgamegroup", "stats", "achievements".
+    // SteamFriends()->ActivateGameOverlay( "community" );
     try
     {
-        GamelibClient client;
-        client.init();
-
+        gamelibclient.init();
         // initizalize & authorize API
-        auto tasks = client.initializeAPI()
+        auto tasks = gamelibclient.initializeAPI()
                          .then([&](utility::string_t uuid) {
                              ucout << U("uuid=") << uuid << std::endl;
-                             return client.authorizeAPI();
+                             return gamelibclient.authorizeAPI();
                          })
-                         .then([&] { return client.balanceAPI(); })
-                         .then([&] { return client.purchaseAPI(); })
+                         .then([&] { return gamelibclient.balanceAPI(); })
+                         .then([&] { return gamelibclient.purchaseAPI(); })
                          .then([&] {
                              // wait for OnMicroTxnAuthorizationResponse callback
-                             ucout << "Wait for OnMicroTxnAuthorizationResponse..." << lang << std::endl;
-                             while (!client.isCommitPurchase())
+                             ucout << "Wait for OnMicroTxnAuthorizationResponse..." << std::endl;
+                             do
                              {
                                  SteamAPI_RunCallbacks();
                                  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                             }
+                             } while (!gamelibclient.isCommitPurchase());
                          })
-                         .then([&] { return client.commitAPI(); });
-        tasks.wait();
+                         .then([&] { return gamelibclient.commitAPI(); })
+
+                         ;
+ 
+        //tasks.wait();
     }
     catch (const std::exception& e)
     {
         ucout << "Error " << e.what() << std::endl;
     }
-    // callback loop
-    SteamAPI_Shutdown();
+    //SteamAPI_Shutdown();
     return 0;
 }
