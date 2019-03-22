@@ -40,7 +40,7 @@ public:
         if (!g_hMenuFont)
         {
             g_hMenuFont = pGameEngine->HCreateFont(MENU_FONT_HEIGHT, FW_BOLD, false, "Arial");
-            if (!g_hMenuFont) OutputDebugString(L"Menu font was not created properly, text won't draw\n");
+            if (!g_hMenuFont) OutputDebugString("Menu font was not created properly, text won't draw\n");
         }
     }
 

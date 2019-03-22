@@ -68,7 +68,7 @@ extern "C" void __cdecl SteamAPIDebugTextHook( int nSeverity, const char *pchDeb
 {
 	// if you're running in the debugger, only warnings (nSeverity >= 1) will be sent
 	// if you add -debug_steamapi to the command-line, a lot of extra informational messages will also be sent
-	::OutputDebugString( (LPCWSTR)pchDebugText );
+	::OutputDebugString( pchDebugText );
 
 	if ( nSeverity >= 1 )
 	{
@@ -162,7 +162,7 @@ static int RealMain( const char *pchCmdLine, HINSTANCE hInstance, int nCmdShow )
 	// even when not launched via steam.
 	if ( !SteamAPI_Init() )
 	{
-		OutputDebugString( L"SteamAPI_Init() failed\n" );
+		OutputDebugString( "SteamAPI_Init() failed\n" );
 		Alert( "Fatal Error", "Steam must be running to play this game (SteamAPI_Init() failed).\n" );
 		return EXIT_FAILURE;
 	}
@@ -175,7 +175,7 @@ static int RealMain( const char *pchCmdLine, HINSTANCE hInstance, int nCmdShow )
 	// will return false.
 	if ( !SteamUser()->BLoggedOn() )
 	{
-		OutputDebugString( L"Steam user is not logged in\n" );
+		OutputDebugString( "Steam user is not logged in\n" );
 		Alert( "Fatal Error", "Steam user must be logged in to play this game (SteamUser()->BLoggedOn() returned false).\n" );
 		return EXIT_FAILURE;
 	}
@@ -216,7 +216,7 @@ static int RealMain( const char *pchCmdLine, HINSTANCE hInstance, int nCmdShow )
 
 	if ( !SteamInput()->Init() )
 	{
-		OutputDebugString( L"SteamInput()->Init failed.\n" );
+		OutputDebugString( "SteamInput()->Init failed.\n" );
 		Alert( "Fatal Error", "SteamInput()->Init failed.\n" );
 		return EXIT_FAILURE;
 	}
