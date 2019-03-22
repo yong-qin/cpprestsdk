@@ -11,6 +11,9 @@
 #include <set>
 #include <map>
 
+#undef OutputDebugString
+void OutputDebugString(const char* pchMsg);
+
 // Typedef for font handles
 typedef int HGAMEFONT;
 

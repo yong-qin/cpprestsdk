@@ -22,7 +22,10 @@
 #define SAFE_RELEASE( x ) if ( 0 != ( x ) ) { ( x )->Release(); x = 0; }
 #endif
 
-// Allocate static member
+void OutputDebugString(const char* pchMsg) { 
+	OutputDebugStringA(pchMsg);
+}
+        // Allocate static member
 std::map<HWND, CGameEngineWin32* > CGameEngineWin32::m_MapEngineInstances;
 
 //-----------------------------------------------------------------------------
@@ -40,7 +43,7 @@ LRESULT CALLBACK GameWndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam 
 			if ( pGameEngine )
 				pGameEngine->Shutdown();
 			else
-				OutputDebugString( L"Failed to find game engine instance for hwnd\n" );
+				OutputDebugString( "Failed to find game engine instance for hwnd\n" );
 
 			PostQuitMessage( 0 );
 			return(0);
@@ -56,7 +59,7 @@ LRESULT CALLBACK GameWndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam 
 			}
 			else
 			{
-				OutputDebugString( L"Failed to find game engine for hwnd, key down event lost\n" );
+				OutputDebugString( "Failed to find game engine for hwnd, key down event lost\n" );
 			}
 		}
 		break;
@@ -71,7 +74,7 @@ LRESULT CALLBACK GameWndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam 
 			}
 			else
 			{
-				OutputDebugString( L"Failed to find game engine for hwnd, key up event lost\n" );
+				OutputDebugString( "Failed to find game engine for hwnd, key up event lost\n" );
 			}
 		}
 		break;
@@ -188,7 +191,7 @@ CGameEngineWin32::CGameEngineWin32( HINSTANCE hInstance, int nShowCommand, int32
 
 	if ( !BCreateGameWindow( nShowCommand ) || !m_hWnd )
 	{
-		OutputDebugString( L"Failed creating game window\n" );
+		OutputDebugString( "Failed creating game window\n" );
 		return;
 	}
 
@@ -311,7 +314,7 @@ void CGameEngineWin32::Shutdown()
 		if ( !DestroyWindow( m_hWnd ) )
 		{
 			// We failed to destroy our window. This shouldn't ever happen.
-			OutputDebugString( L"Failed destroying window\n" );
+			OutputDebugString( "Failed destroying window\n" );
 		}
 		else
 		{
@@ -332,7 +335,7 @@ void CGameEngineWin32::Shutdown()
 	{
 		if ( !UnregisterClass( L"SteamworksExample", m_hInstance ) )
 		{
-			OutputDebugString( L"Failed unregistering window class\n" );
+			OutputDebugString( "Failed unregistering window class\n" );
 		}
 		m_hInstance = NULL;
 	}
@@ -373,7 +376,7 @@ bool CGameEngineWin32::BHandleLostDevice()
 			if ( FAILED( iter->second->OnLostDevice() ) )
 			{
 				bFullySuccessful = false;
-				OutputDebugString( L"Failed OnLostDevice on a font object\n" );
+				OutputDebugString( "Failed OnLostDevice on a font object\n" );
 			}
 		}
 	}
@@ -433,7 +436,7 @@ bool CGameEngineWin32::BHandleResetDevice()
 		{
 			if ( FAILED( iter->second->OnResetDevice() ) )
 			{
-				OutputDebugString( L"Reset for a font object failed\n" );
+				OutputDebugString( "Reset for a font object failed\n" );
 				bFullySuccessful = false;
 			}
 		}
@@ -556,7 +559,7 @@ bool CGameEngineWin32::BCreateGameWindow( int nShowCommand )
 
 	if ( !RegisterClass( &wc ) )
 	{
-		OutputDebugString( L"Failure registering window class\n" );
+		OutputDebugString( "Failure registering window class\n" );
 		return false;
 	}
 
@@ -578,7 +581,7 @@ bool CGameEngineWin32::BCreateGameWindow( int nShowCommand )
 
 	if ( m_hWnd == NULL ) 
 	{
-		OutputDebugString( L"Failed to create window for CGameEngine\n" );
+		OutputDebugString( "Failed to create window for CGameEngine\n" );
 		return false;
 	}
 
@@ -598,7 +601,7 @@ bool CGameEngineWin32::BInitializeD3D9()
 		m_pD3D9Interface = Direct3DCreate9( D3D_SDK_VERSION );
 		if ( m_pD3D9Interface == NULL )
 		{
-			OutputDebugString( L"Direct3DCreate9 failed\n" );
+			OutputDebugString( "Direct3DCreate9 failed\n" );
 			return false;
 		}
 	}
@@ -611,7 +614,7 @@ bool CGameEngineWin32::BInitializeD3D9()
 		HRESULT hRes = m_pD3D9Interface->GetAdapterDisplayMode( D3DADAPTER_DEFAULT, &d3ddisplaymode );
 		if (FAILED(hRes))
 		{
-			OutputDebugString( L"GetAdapterDisplayMode failed\n");
+			OutputDebugString( "GetAdapterDisplayMode failed\n");
 			return false;
 		}
 
@@ -657,14 +660,14 @@ bool CGameEngineWin32::BInitializeD3D9()
 			// Make sure the pointer is NULL after failures (seems it sometimes gets modified even when failing)
 			m_pD3D9Device = NULL;
 
-			OutputDebugString( L"Failed to create D3D9 device\n" );
+			OutputDebugString( "Failed to create D3D9 device\n" );
 			return false;
 		}
 
 		if ( FAILED( m_pD3D9Device->GetDepthStencilSurface( &m_pBackbufferDepth ) ) )
 		{
 			m_pBackbufferDepth = NULL;
-			OutputDebugString( L"Failed to get the backbuffer depth buffer\n" );
+			OutputDebugString( "Failed to get the backbuffer depth buffer\n" );
 			return false;
 		}
 
@@ -718,18 +721,18 @@ bool CGameEngineWin32::StartFrame()
 		// If it is newly lost then release resources
 		if ( !m_bDeviceLost )
 		{
-			OutputDebugString( L"Device lost\n" );
+			OutputDebugString( "Device lost\n" );
 
 			// HandleLostDevice() will free all our resources
 			if ( !BHandleLostDevice() )
-				OutputDebugString( L"Failed to release all resources for lost device\n" );
+				OutputDebugString( "Failed to release all resources for lost device\n" );
 		}
 		m_bDeviceLost = true;
 
 	}
 	else if ( hRes == D3DERR_DEVICENOTRESET )
 	{
-		OutputDebugString( L"Getting ready to reset device\n" );
+		OutputDebugString( "Getting ready to reset device\n" );
 
 		// Reset the device
 		hRes = m_pD3D9Device->Reset( &m_d3dpp );
@@ -739,12 +742,12 @@ bool CGameEngineWin32::StartFrame()
 			// Acquire all our resources again
 			if ( !BHandleResetDevice() )
 			{
-				OutputDebugString( L"Failed to acquire all resources again after device reset\n" );
+				OutputDebugString( "Failed to acquire all resources again after device reset\n" );
 			}
 		}
 		else
 		{
-			OutputDebugString( L"Reset() call on device failed\n" );
+			OutputDebugString( "Reset() call on device failed\n" );
 			::MessageBox( m_hWnd, L"m_pD3D9Device->Reset() call has failed unexpectedly\n", L"Fatal Error", MB_OK );
 			Shutdown();
 			return false;
@@ -805,14 +808,14 @@ void CGameEngineWin32::EndFrame()
 	hRes = m_pD3D9Device->EndScene();
 	if ( FAILED( hRes ) ) 
 	{
-		OutputDebugString( L"EndScene() call failed\n" );
+		OutputDebugString( "EndScene() call failed\n" );
 		return;
 	}
 
 	hRes = m_pD3D9Device->Present( NULL, NULL, NULL, NULL );
 	if ( FAILED( hRes ) )
 	{
-		OutputDebugString( L"Present() call failed\n" );
+		OutputDebugString( "Present() call failed\n" );
 		return;
 	}
 }
@@ -831,7 +834,7 @@ HGAMEVERTBUF CGameEngineWin32::HCreateVertexBuffer( uint32 nSizeInBytes, DWORD d
 		dwFVF, D3DPOOL_DEFAULT, &pVertBuffer, NULL );
 	if ( FAILED( hRes ) )
 	{
-		OutputDebugString( L"Failed creating vertex buffer\n" );
+		OutputDebugString( "Failed creating vertex buffer\n" );
 		return 0;
 	}
 
@@ -860,7 +863,7 @@ bool CGameEngineWin32::BLockEntireVertexBuffer( HGAMEVERTBUF hVertBuf, void **pp
 
 	if ( !hVertBuf )
 	{
-		OutputDebugString( L"Someone is calling BLockEntireVertexBuffer() with a null handle\n" );
+		OutputDebugString( "Someone is calling BLockEntireVertexBuffer() with a null handle\n" );
 		return false;
 	}
 
@@ -869,14 +872,14 @@ bool CGameEngineWin32::BLockEntireVertexBuffer( HGAMEVERTBUF hVertBuf, void **pp
 	iter = m_MapVertexBuffers.find( hVertBuf );
 	if ( iter == m_MapVertexBuffers.end() )
 	{
-		OutputDebugString( L"Invalid vertex buffer handle passed to BLockEntireVertexBuffer()\n" );
+		OutputDebugString( "Invalid vertex buffer handle passed to BLockEntireVertexBuffer()\n" );
 		return false;
 	}
 
 	// Make sure the pointer is valid
 	if ( !iter->second.m_pBuffer )
 	{
-		OutputDebugString( L"Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
+		OutputDebugString( "Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
 		return false;
 	}
 
@@ -884,14 +887,14 @@ bool CGameEngineWin32::BLockEntireVertexBuffer( HGAMEVERTBUF hVertBuf, void **pp
 	// Make sure its not already locked
 	if ( iter->second.m_bIsLocked )
 	{
-		OutputDebugString( L"Trying to lock an already locked vertex buffer!\n" );
+		OutputDebugString( "Trying to lock an already locked vertex buffer!\n" );
 		return false;
 	}
 
 	// we have the buffer, try to lock it
 	if( FAILED( iter->second.m_pBuffer->Lock( 0, 0, ppVoid, dwFlags ) ) )
 	{
-		OutputDebugString( L"BLockEntireVertexBuffer call failed\n" );
+		OutputDebugString( "BLockEntireVertexBuffer call failed\n" );
 		return false;
 	}
 
@@ -915,7 +918,7 @@ bool CGameEngineWin32::BUnlockVertexBuffer( HGAMEVERTBUF hVertBuf )
 
 	if ( !hVertBuf )
 	{
-		OutputDebugString( L"Someone is calling BUnlockVertexBuffer() with a null handle\n" );
+		OutputDebugString( "Someone is calling BUnlockVertexBuffer() with a null handle\n" );
 		return false;
 	}
 
@@ -924,28 +927,28 @@ bool CGameEngineWin32::BUnlockVertexBuffer( HGAMEVERTBUF hVertBuf )
 	iter = m_MapVertexBuffers.find( hVertBuf );
 	if ( iter == m_MapVertexBuffers.end() )
 	{
-		OutputDebugString( L"Invalid vertex buffer handle passed to BUnlockVertexBuffer()\n" );
+		OutputDebugString( "Invalid vertex buffer handle passed to BUnlockVertexBuffer()\n" );
 		return false;
 	}
 
 	// Make sure the pointer is valid
 	if ( !iter->second.m_pBuffer )
 	{
-		OutputDebugString( L"Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
+		OutputDebugString( "Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
 		return false;
 	}
 
 	// Make sure we are locked if someone is trying to unlock
 	if ( !iter->second.m_bIsLocked )
 	{
-		OutputDebugString( L"Trying to unlock a vertex buffer that is not locked!\n" );
+		OutputDebugString( "Trying to unlock a vertex buffer that is not locked!\n" );
 		return false;
 	}
 
 	// we have the buffer, try to lock it
 	if( FAILED( iter->second.m_pBuffer->Unlock() ) )
 	{
-		OutputDebugString( L"BUnlockVertexBuffer call failed\n" );
+		OutputDebugString( "BUnlockVertexBuffer call failed\n" );
 		return false;
 	}
 
@@ -969,7 +972,7 @@ bool CGameEngineWin32::BReleaseVertexBuffer( HGAMEVERTBUF hVertBuf )
 
 	if ( !hVertBuf )
 	{
-		OutputDebugString( L"Someone is calling BReleaseVertexBuffer() with a null handle\n" );
+		OutputDebugString( "Someone is calling BReleaseVertexBuffer() with a null handle\n" );
 		return false;
 	}
 
@@ -978,14 +981,14 @@ bool CGameEngineWin32::BReleaseVertexBuffer( HGAMEVERTBUF hVertBuf )
 	iter = m_MapVertexBuffers.find( hVertBuf );
 	if ( iter == m_MapVertexBuffers.end() )
 	{
-		OutputDebugString( L"Invalid vertex buffer handle passed to BReleaseVertexBuffer()\n" );
+		OutputDebugString( "Invalid vertex buffer handle passed to BReleaseVertexBuffer()\n" );
 		return false;
 	}
 
 	// Make sure the pointer is valid
 	if ( !iter->second.m_pBuffer )
 	{
-		OutputDebugString( L"Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
+		OutputDebugString( "Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
 		return false;
 	}
 
@@ -1021,7 +1024,7 @@ bool CGameEngineWin32::BSetFVF( DWORD dwFormat )
 
 	if ( FAILED( m_pD3D9Device->SetFVF( dwFormat ) ) )
 	{
-		OutputDebugString( L"SetFVF() call failed\n" );
+		OutputDebugString( "SetFVF() call failed\n" );
 		return false;
 	}
 
@@ -1049,7 +1052,7 @@ bool CGameEngineWin32::BDrawLine( float xPos0, float yPos0, DWORD dwColor0, floa
 
 		if ( !m_hLineBuffer )
 		{
-			OutputDebugString( L"Can't BDrawLine() because vertex buffer creation failed\n" );
+			OutputDebugString( "Can't BDrawLine() because vertex buffer creation failed\n" );
 			return false;
 		}
 	}
@@ -1070,7 +1073,7 @@ bool CGameEngineWin32::BDrawLine( float xPos0, float yPos0, DWORD dwColor0, floa
 		if ( !BLockEntireVertexBuffer( m_hLineBuffer, (void**)&m_pLineVertexes, m_dwLineBufferBatchPos ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD ) )
 		{
 			m_pLineVertexes = NULL;
-			OutputDebugString( L"BDrawLine failed because locking vertex buffer failed\n" );
+			OutputDebugString( "BDrawLine failed because locking vertex buffer failed\n" );
 			return false;
 		}
 	}
@@ -1106,7 +1109,7 @@ bool CGameEngineWin32::BFlushLineBuffer()
 	// OK, it is locked, so unlock now
 	if ( !BUnlockVertexBuffer( m_hLineBuffer ) )
 	{
-		OutputDebugString( L"Failed flushing line buffer because BUnlockVertexBuffer failed\n" );
+		OutputDebugString( "Failed flushing line buffer because BUnlockVertexBuffer failed\n" );
 		return false;
 	}
 
@@ -1120,20 +1123,20 @@ bool CGameEngineWin32::BFlushLineBuffer()
 	// Set FVF (will short circuit if this is already the set FVF)
 	if ( !BSetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE ) )
 	{
-		OutputDebugString( L"Failed flushing line buffer because BSetFVF failed\n" );
+		OutputDebugString( "Failed flushing line buffer because BSetFVF failed\n" );
 		return false;
 	}
 
 	if ( !BSetStreamSource( m_hLineBuffer, 0, sizeof( LineVertex_t ) ) )
 	{
-		OutputDebugString( L"Failed flushing line buffer because BSetStreamSource failed\n" );
+		OutputDebugString( "Failed flushing line buffer because BSetStreamSource failed\n" );
 		return false;
 	}
 
 	// Actual render calls
 	if ( !BRenderPrimitive( D3DPT_LINELIST, m_dwLineBufferBatchPos*2, m_dwLinesToFlush ) )
 	{
-		OutputDebugString( L"Failed flushing line buffer because BRenderPrimitive failed\n" );
+		OutputDebugString( "Failed flushing line buffer because BRenderPrimitive failed\n" );
 		return false;
 	}
 
@@ -1166,7 +1169,7 @@ bool CGameEngineWin32::BDrawPoint( float xPos, float yPos, DWORD dwColor )
 
 		if ( !m_hPointBuffer )
 		{
-			OutputDebugString( L"Can't BDrawPoint() because vertex buffer creation failed\n" );
+			OutputDebugString( "Can't BDrawPoint() because vertex buffer creation failed\n" );
 			return false;
 		}
 	}
@@ -1187,7 +1190,7 @@ bool CGameEngineWin32::BDrawPoint( float xPos, float yPos, DWORD dwColor )
 		if ( !BLockEntireVertexBuffer( m_hPointBuffer, (void**)&m_pPointVertexes, (m_dwPointBufferBatchPos+m_dwPointsToFlush) ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD ) )
 		{
 			m_pPointVertexes = NULL;
-			OutputDebugString( L"BDrawPoint failed because locking vertex buffer failed\n" );
+			OutputDebugString( "BDrawPoint failed because locking vertex buffer failed\n" );
 			return false;
 		}
 	}
@@ -1217,7 +1220,7 @@ bool CGameEngineWin32::BFlushPointBuffer()
 	// OK, it is locked, so unlock now
 	if ( !BUnlockVertexBuffer( m_hPointBuffer ) )
 	{
-		OutputDebugString( L"Failed flushing point buffer because BUnlockVertexBuffer failed\n" );
+		OutputDebugString( "Failed flushing point buffer because BUnlockVertexBuffer failed\n" );
 		return false;
 	}
 
@@ -1231,20 +1234,20 @@ bool CGameEngineWin32::BFlushPointBuffer()
 	// Set FVF (will short circuit if this is already the set FVF)
 	if ( !BSetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE ) )
 	{
-		OutputDebugString( L"Failed flushing point buffer because BSetFVF failed\n" );
+		OutputDebugString( "Failed flushing point buffer because BSetFVF failed\n" );
 		return false;
 	}
 
 	if ( !BSetStreamSource( m_hPointBuffer, 0, sizeof( PointVertex_t ) ) )
 	{
-		OutputDebugString( L"Failed flushing point buffer because BSetStreamSource failed\n" );
+		OutputDebugString( "Failed flushing point buffer because BSetStreamSource failed\n" );
 		return false;
 	}
 
 	// Actual render calls
 	if ( !BRenderPrimitive( D3DPT_POINTLIST, m_dwPointBufferBatchPos, m_dwPointsToFlush ) )
 	{
-		OutputDebugString( L"Failed flushing point buffer because BRenderPrimitive failed\n" );
+		OutputDebugString( "Failed flushing point buffer because BRenderPrimitive failed\n" );
 		return false;
 	}
 
@@ -1291,7 +1294,7 @@ bool CGameEngineWin32::BDrawTexturedRect( float xPos0, float yPos0, float xPos1,
 	iter = m_MapTextures.find( hTexture );
 	if ( iter == m_MapTextures.end() )
 	{
-		OutputDebugString( L"BDrawTexturedQuad called with invalid hTexture value\n" );
+		OutputDebugString( "BDrawTexturedQuad called with invalid hTexture value\n" );
 		return false;
 	}
 
@@ -1302,7 +1305,7 @@ bool CGameEngineWin32::BDrawTexturedRect( float xPos0, float yPos0, float xPos1,
 
 		if ( !m_hQuadBuffer )
 		{
-			OutputDebugString( L"Can't BDrawTexturedQuad() because vertex buffer creation failed\n" );
+			OutputDebugString( "Can't BDrawTexturedQuad() because vertex buffer creation failed\n" );
 			return false;
 		}
 	}
@@ -1324,7 +1327,7 @@ bool CGameEngineWin32::BDrawTexturedRect( float xPos0, float yPos0, float xPos1,
 
 	if ( !BSetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1 ) )
 	{
-		OutputDebugString( L"Setting FVF failed for textured rect drawing\n" );
+		OutputDebugString( "Setting FVF failed for textured rect drawing\n" );
 		return false;
 	}
 
@@ -1334,7 +1337,7 @@ bool CGameEngineWin32::BDrawTexturedRect( float xPos0, float yPos0, float xPos1,
 		if ( !BLockEntireVertexBuffer( m_hQuadBuffer, (void**)&m_pQuadVertexes, m_dwQuadBufferBatchPos ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD ) )
 		{
 			m_pQuadVertexes = NULL;
-			OutputDebugString( L"BDrawTexturedQuad failed because locking vertex buffer failed\n" );
+			OutputDebugString( "BDrawTexturedQuad failed because locking vertex buffer failed\n" );
 			return false;
 		}
 	}
@@ -1395,7 +1398,7 @@ bool CGameEngineWin32::BDrawTexturedQuad( float xPos0, float yPos0, float xPos1,
 	iter = m_MapTextures.find( hTexture );
 	if ( iter == m_MapTextures.end() )
 	{
-		OutputDebugString( L"BDrawTexturedQuad called with invalid hTexture value\n" );
+		OutputDebugString( "BDrawTexturedQuad called with invalid hTexture value\n" );
 		return false;
 	}
 
@@ -1406,7 +1409,7 @@ bool CGameEngineWin32::BDrawTexturedQuad( float xPos0, float yPos0, float xPos1,
 
 		if ( !m_hQuadBuffer )
 		{
-			OutputDebugString( L"Can't BDrawTexturedQuad() because vertex buffer creation failed\n" );
+			OutputDebugString( "Can't BDrawTexturedQuad() because vertex buffer creation failed\n" );
 			return false;
 		}
 	}
@@ -1428,7 +1431,7 @@ bool CGameEngineWin32::BDrawTexturedQuad( float xPos0, float yPos0, float xPos1,
 
 	if ( !BSetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1 ) )
 	{
-		OutputDebugString( L"Setting FVF failed for textured rect drawing\n" );
+		OutputDebugString( "Setting FVF failed for textured rect drawing\n" );
 		return false;
 	}
 
@@ -1438,7 +1441,7 @@ bool CGameEngineWin32::BDrawTexturedQuad( float xPos0, float yPos0, float xPos1,
 		if ( !BLockEntireVertexBuffer( m_hQuadBuffer, (void**)&m_pQuadVertexes, m_dwQuadBufferBatchPos ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD ) )
 		{
 			m_pQuadVertexes = NULL;
-			OutputDebugString( L"BDrawTexturedQuad failed because locking vertex buffer failed\n" );
+			OutputDebugString( "BDrawTexturedQuad failed because locking vertex buffer failed\n" );
 			return false;
 		}
 	}
@@ -1499,7 +1502,7 @@ bool CGameEngineWin32::BDraw3DTexturedQuad( Textured3DQuadVertex_t vert[4], HGAM
 	iter = m_MapTextures.find( hTexture );
 	if ( iter == m_MapTextures.end() )
 	{
-		OutputDebugString( L"BDrawTexturedQuad called with invalid hTexture value\n" );
+		OutputDebugString( "BDrawTexturedQuad called with invalid hTexture value\n" );
 		return false;
 	}
 
@@ -1510,7 +1513,7 @@ bool CGameEngineWin32::BDraw3DTexturedQuad( Textured3DQuadVertex_t vert[4], HGAM
 
 		if ( !m_h3DQuadBuffer )
 		{
-			OutputDebugString( L"Can't BDraw3DTexturedQuad() because vertex buffer creation failed\n" );
+			OutputDebugString( "Can't BDraw3DTexturedQuad() because vertex buffer creation failed\n" );
 			return false;
 		}
 	}
@@ -1532,7 +1535,7 @@ bool CGameEngineWin32::BDraw3DTexturedQuad( Textured3DQuadVertex_t vert[4], HGAM
 
 	if ( !BSetFVF( D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1 ) )
 	{
-		OutputDebugString( L"Setting FVF failed for textured rect drawing\n" );
+		OutputDebugString( "Setting FVF failed for textured rect drawing\n" );
 		return false;
 	}
 
@@ -1542,7 +1545,7 @@ bool CGameEngineWin32::BDraw3DTexturedQuad( Textured3DQuadVertex_t vert[4], HGAM
 		if ( !BLockEntireVertexBuffer( m_h3DQuadBuffer, (void**)&m_p3DQuadVertexes, m_dw3DQuadBufferBatchPos ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD ) )
 		{
 			m_p3DQuadVertexes = NULL;
-			OutputDebugString( L"BDrawTexturedQuad failed because locking vertex buffer failed\n" );
+			OutputDebugString( "BDrawTexturedQuad failed because locking vertex buffer failed\n" );
 			return false;
 		}
 	}
@@ -1572,7 +1575,7 @@ bool CGameEngineWin32::BFlushQuadBuffer()
 	// OK, it is locked, so unlock now
 	if ( !BUnlockVertexBuffer( m_hQuadBuffer ) )
 	{
-		OutputDebugString( L"Failed flushing quad buffer because BUnlockVertexBuffer failed\n" );
+		OutputDebugString( "Failed flushing quad buffer because BUnlockVertexBuffer failed\n" );
 		return false;
 	}
 
@@ -1586,7 +1589,7 @@ bool CGameEngineWin32::BFlushQuadBuffer()
 	// Set FVF (will short circuit if this is already the set FVF)
 	if ( !BSetFVF( D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1 ) )
 	{
-		OutputDebugString( L"Failed flushing quad buffer because BSetFVF failed\n" );
+		OutputDebugString( "Failed flushing quad buffer because BSetFVF failed\n" );
 		return false;
 	}
 
@@ -1596,7 +1599,7 @@ bool CGameEngineWin32::BFlushQuadBuffer()
 
 	if ( !BSetStreamSource( m_hQuadBuffer, 0, sizeof(TexturedQuadVertex_t) ) )
 	{
-		OutputDebugString( L"Failed flushing quad buffer because BSetStreamSource failed\n" );
+		OutputDebugString( "Failed flushing quad buffer because BSetStreamSource failed\n" );
 		m_pD3D9Device->SetTexture( 0, NULL ); // need to clear the texture before other drawing ops
 		return false;
 	}
@@ -1606,7 +1609,7 @@ bool CGameEngineWin32::BFlushQuadBuffer()
 	{
 		if ( !BRenderPrimitive( D3DPT_TRIANGLESTRIP, (m_dwQuadBufferBatchPos*4)+i, 2 ) )
 		{
-			OutputDebugString( L"Failed flushing line buffer because BRenderPrimitive failed\n" );
+			OutputDebugString( "Failed flushing line buffer because BRenderPrimitive failed\n" );
 			m_pD3D9Device->SetTexture( 0, NULL ); // need to clear the texture before other drawing ops
 			return false;
 		}
@@ -1638,7 +1641,7 @@ bool CGameEngineWin32::BFlush3DQuadBuffer()
 	// OK, it is locked, so unlock now
 	if ( !BUnlockVertexBuffer( m_h3DQuadBuffer ) )
 	{
-		OutputDebugString( L"Failed flushing quad buffer because BUnlockVertexBuffer failed\n" );
+		OutputDebugString( "Failed flushing quad buffer because BUnlockVertexBuffer failed\n" );
 		return false;
 	}
 
@@ -1652,7 +1655,7 @@ bool CGameEngineWin32::BFlush3DQuadBuffer()
 	// Set FVF (will short circuit if this is already the set FVF)
 	if ( !BSetFVF( D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1 ) )
 	{
-		OutputDebugString( L"Failed flushing quad buffer because BSetFVF failed\n" );
+		OutputDebugString( "Failed flushing quad buffer because BSetFVF failed\n" );
 		return false;
 	}
 
@@ -1662,7 +1665,7 @@ bool CGameEngineWin32::BFlush3DQuadBuffer()
 
 	if ( !BSetStreamSource( m_h3DQuadBuffer, 0, sizeof(Textured3DQuadVertex_t) ) )
 	{
-		OutputDebugString( L"Failed flushing 3D quad buffer because BSetStreamSource failed\n" );
+		OutputDebugString( "Failed flushing 3D quad buffer because BSetStreamSource failed\n" );
 		m_pD3D9Device->SetTexture( 0, NULL ); // need to clear the texture before other drawing ops
 		return false;
 	}
@@ -1672,7 +1675,7 @@ bool CGameEngineWin32::BFlush3DQuadBuffer()
 	{
 		if ( !BRenderPrimitive( D3DPT_TRIANGLESTRIP, (m_dw3DQuadBufferBatchPos * 4) + i, 2 ) )
 		{
-			OutputDebugString( L"Failed flushing line buffer because BRenderPrimitive failed\n" );
+			OutputDebugString( "Failed flushing line buffer because BRenderPrimitive failed\n" );
 			m_pD3D9Device->SetTexture( 0, NULL ); // need to clear the texture before other drawing ops
 			return false;
 		}
@@ -1705,7 +1708,7 @@ bool CGameEngineWin32::BSetStreamSource( HGAMEVERTBUF hVertBuf, uint32 uOffset, 
 
 	if ( !hVertBuf )
 	{
-		OutputDebugString( L"Someone is calling BSetStreamSource() with a null handle\n" );
+		OutputDebugString( "Someone is calling BSetStreamSource() with a null handle\n" );
 		return false;
 	}
 
@@ -1714,20 +1717,20 @@ bool CGameEngineWin32::BSetStreamSource( HGAMEVERTBUF hVertBuf, uint32 uOffset, 
 	iter = m_MapVertexBuffers.find( hVertBuf );
 	if ( iter == m_MapVertexBuffers.end() )
 	{
-		OutputDebugString( L"Invalid vertex buffer handle passed to BSetStreamSource()\n" );
+		OutputDebugString( "Invalid vertex buffer handle passed to BSetStreamSource()\n" );
 		return false;
 	}
 
 	// Make sure the pointer is valid
 	if ( !iter->second.m_pBuffer )
 	{
-		OutputDebugString( L"Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
+		OutputDebugString( "Pointer to vertex buffer is invalid (lost device and not recreated?)!\n" );
 		return false;
 	}
 
 	if ( FAILED( m_pD3D9Device->SetStreamSource( 0, iter->second.m_pBuffer, uOffset, uStride ) ) )
 	{
-		OutputDebugString( L"SetStreamSource() call failed\n" );
+		OutputDebugString( "SetStreamSource() call failed\n" );
 		return false;
 	}
 
@@ -1748,7 +1751,7 @@ bool CGameEngineWin32::BRenderPrimitive( D3DPRIMITIVETYPE primType, uint32 uStar
 
 	if ( FAILED( m_pD3D9Device->DrawPrimitive( primType, uStartVertex, uCount ) ) )
 	{
-		OutputDebugString( L"BRenderPrimtive() call failed\n" );
+		OutputDebugString( "BRenderPrimtive() call failed\n" );
 		return false;
 	}
 
@@ -1823,7 +1826,7 @@ HGAMEFONT CGameEngineWin32::HCreateFont( int nHeight, int nFontWeight, bool bIta
 	HRESULT hRes = D3DXCreateFont( m_pD3D9Device, nHeight, 0, nFontWeight, 0, bItalic, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, (LPCWSTR)pchFont, &pFont );
 	if ( FAILED( hRes ) )
 	{
-		OutputDebugString( L"Failed creating font via D3DXCreateFont\n" );
+		OutputDebugString( "Failed creating font via D3DXCreateFont\n" );
 		return 0;
 	}
 
@@ -1848,7 +1851,7 @@ bool CGameEngineWin32::BDrawString( HGAMEFONT hFont, RECT rect, DWORD dwColor, D
 
 	if ( !hFont )
 	{
-		OutputDebugString( L"Someone is calling BDrawString with a null font handle\n" );
+		OutputDebugString( "Someone is calling BDrawString with a null font handle\n" );
 		return false;
 	}
 
@@ -1857,7 +1860,7 @@ bool CGameEngineWin32::BDrawString( HGAMEFONT hFont, RECT rect, DWORD dwColor, D
 	iter = m_MapFontInstances.find( hFont );
 	if ( iter == m_MapFontInstances.end() )
 	{
-		OutputDebugString( L"Invalid font handle passed to BDrawString()\n" );
+		OutputDebugString( "Invalid font handle passed to BDrawString()\n" );
 		return false;
 	}
 
@@ -1865,7 +1868,7 @@ bool CGameEngineWin32::BDrawString( HGAMEFONT hFont, RECT rect, DWORD dwColor, D
 	// we have the font, try to draw with it
 	if( !iter->second->DrawText( NULL, (LPCWSTR)wstr.c_str(), -1, &rect, dwFormat, dwColor ) )
 	{
-		OutputDebugString( L"DrawText call failed\n" );
+		OutputDebugString( "DrawText call failed\n" );
 		return false;
 	}
 
@@ -2323,7 +2326,7 @@ bool CGameEngineWin32::UpdateTexture( HGAMETEXTURE hTexture, byte *pRGBAData, ui
 	iter = m_MapTextures.find( hTexture );
 	if (iter == m_MapTextures.end())
 	{
-		OutputDebugString( L"BFlushQuadBuffer failed with invalid m_hLastTexture value\n" );
+		OutputDebugString( "BFlushQuadBuffer failed with invalid m_hLastTexture value\n" );
 		return false;
 	}
 
@@ -2332,7 +2335,7 @@ bool CGameEngineWin32::UpdateTexture( HGAMETEXTURE hTexture, byte *pRGBAData, ui
 	HRESULT hRes = iter->second.m_pTexture->LockRect( 0, &rect, NULL, 0 );
 	if (FAILED( hRes ))
 	{
-		OutputDebugString( L"LockRect call failed\n" );
+		OutputDebugString( "LockRect call failed\n" );
 		iter->second.m_pTexture->Release();
 		iter->second.m_pTexture = NULL;
 		return false;
@@ -2367,7 +2370,7 @@ bool CGameEngineWin32::UpdateTexture( HGAMETEXTURE hTexture, byte *pRGBAData, ui
 		uint16 *pSrc = (uint16 *)pRGBAData;
 
 		if ( eTextureFormat != eTextureFormat_BGRA16 )
-			OutputDebugString( L"Unsupported texture format for BGRA16 texture \n" );
+			OutputDebugString( "Unsupported texture format for BGRA16 texture \n" );
 
 		memcpy( pDest, pSrc, sizeof( uint16 )* uWidth * uHeight * 4 );
 	}
@@ -2375,7 +2378,7 @@ bool CGameEngineWin32::UpdateTexture( HGAMETEXTURE hTexture, byte *pRGBAData, ui
 	hRes = iter->second.m_pTexture->UnlockRect( 0 );
 	if (FAILED( hRes ))
 	{
-		OutputDebugString( L"UnlockRect call failed\n" );
+		OutputDebugString( "UnlockRect call failed\n" );
 		iter->second.m_pTexture->Release();
 		iter->second.m_pTexture = NULL;
 		return false;
@@ -2391,7 +2394,7 @@ bool CGameEngineWin32::BReadyTexture( HGAMETEXTURE hTexture )
 	iter = m_MapTextures.find( hTexture );
 	if ( iter == m_MapTextures.end() )
 	{
-		OutputDebugString( L"BFlushQuadBuffer failed with invalid m_hLastTexture value\n" );
+		OutputDebugString( "BFlushQuadBuffer failed with invalid m_hLastTexture value\n" );
 		return false;
 	}
 
@@ -2418,7 +2421,7 @@ bool CGameEngineWin32::BReadyTexture( HGAMETEXTURE hTexture )
 			NULL );
 		if ( FAILED( hRes ) )
 		{
-			OutputDebugString( L"BFlushQuadBuffer failed because CreateTexture() call failed\n" );
+			OutputDebugString( "BFlushQuadBuffer failed because CreateTexture() call failed\n" );
 			iter->second.m_pTexture = NULL;
 			return false;
 		}
@@ -2432,7 +2435,7 @@ bool CGameEngineWin32::BReadyTexture( HGAMETEXTURE hTexture )
 			hRes = iter->second.m_pTexture->LockRect( 0, &rect, NULL, 0 );
 			if ( FAILED( hRes ) )
 			{
-				OutputDebugString( L"LockRect call failed\n" );
+				OutputDebugString( "LockRect call failed\n" );
 				iter->second.m_pTexture->Release();
 				iter->second.m_pTexture = NULL;
 				return false;
@@ -2467,7 +2470,7 @@ bool CGameEngineWin32::BReadyTexture( HGAMETEXTURE hTexture )
 				uint16 *pSrc = (uint16 *)iter->second.m_pRGBAData;
 		
 				if ( iter->second.m_eTextureFormat != eTextureFormat_BGRA16 )
-					OutputDebugString( L"Unsupported texture format for BGRA16 texture \n" );
+					OutputDebugString( "Unsupported texture format for BGRA16 texture \n" );
 
 				memcpy( pDest, pSrc, sizeof(uint16)* iter->second.m_uWidth * iter->second.m_uHeight * 4 );
 			}
@@ -2475,7 +2478,7 @@ bool CGameEngineWin32::BReadyTexture( HGAMETEXTURE hTexture )
 			hRes = iter->second.m_pTexture->UnlockRect( 0 );
 			if ( FAILED( hRes ) )
 			{
-				OutputDebugString( L"UnlockRect call failed\n" );
+				OutputDebugString( "UnlockRect call failed\n" );
 				iter->second.m_pTexture->Release();
 				iter->second.m_pTexture = NULL;
 				return false;
@@ -2487,7 +2490,7 @@ bool CGameEngineWin32::BReadyTexture( HGAMETEXTURE hTexture )
 			hRes = m_pD3D9Device->CreateDepthStencilSurface( iter->second.m_uWidth, iter->second.m_uHeight, D3DFMT_D32F_LOCKABLE, D3DMULTISAMPLE_NONE, 0, FALSE, &iter->second.m_pDepthSurface, NULL );
 			if ( FAILED( hRes ) )
 			{
-				OutputDebugString( L"BReadyTexture - CreateDepthStencilSurface failed\n" );
+				OutputDebugString( "BReadyTexture - CreateDepthStencilSurface failed\n" );
 				iter->second.m_pTexture->Release();
 				iter->second.m_pTexture = NULL;
 				return false;
@@ -2506,7 +2509,7 @@ bool CGameEngineWin32::BSetTexture( HGAMETEXTURE hTexture )
 	// Ok, texture should be created ok, do the drawing work
 	if ( FAILED( m_pD3D9Device->SetTexture( 0, m_MapTextures[ hTexture ].m_pTexture ) ) )
 	{
-		OutputDebugString( L"BFlushQuadBuffer failed setting texture\n" );
+		OutputDebugString( "BFlushQuadBuffer failed setting texture\n" );
 		return false;
 	}
 
@@ -2519,7 +2522,7 @@ bool CGameEngineWin32::BSetRenderTarget( HGAMETEXTURE hTexture )
 {
 	if ( !BReadyTexture( hTexture ) )
 	{
-		OutputDebugString( L"BSetRenderTarget couldn't ready the texture\n" );
+		OutputDebugString( "BSetRenderTarget couldn't ready the texture\n" );
 		return false;
 	}
 
@@ -2527,26 +2530,26 @@ bool CGameEngineWin32::BSetRenderTarget( HGAMETEXTURE hTexture )
 	LPDIRECT3DTEXTURE9 pTex = tex.m_pTexture;
 	if ( !pTex )
 	{
-		OutputDebugString( L"BSetRenderTarget - no texture\n" );
+		OutputDebugString( "BSetRenderTarget - no texture\n" );
 		return false;
 	}
 
 	IDirect3DSurface9 *pSurface;
 	if ( FAILED( pTex->GetSurfaceLevel( 0, &pSurface ) ) )
 	{
-		OutputDebugString( L"BSetRenderTarget - no surface\n" );
+		OutputDebugString( "BSetRenderTarget - no surface\n" );
 		return false;
 	}
 
 	if ( FAILED( m_pD3D9Device->SetRenderTarget( 0, pSurface ) ) )
 	{
-		OutputDebugString( L"BSetRenderTarget failed\n" );
+		OutputDebugString( "BSetRenderTarget failed\n" );
 		return false;
 	}
 
 	if ( FAILED( m_pD3D9Device->SetDepthStencilSurface( tex.m_pDepthSurface ) ) )
 	{
-		OutputDebugString( L"BSetRenderTarget Depth stencil surface\n" );
+		OutputDebugString( "BSetRenderTarget Depth stencil surface\n" );
 		return false;
 	}
 
@@ -2560,19 +2563,19 @@ bool CGameEngineWin32::BUnsetRenderTarget()
 	IDirect3DSurface9 *pSurface;
 	if ( FAILED( m_pD3D9Device->GetBackBuffer( 0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurface ) ) )
 	{
-		OutputDebugString( L"BClearRenderTarget - no surface\n" );
+		OutputDebugString( "BClearRenderTarget - no surface\n" );
 		return false;
 	}
 
 	if ( FAILED( m_pD3D9Device->SetRenderTarget( 0, pSurface ) ) )
 	{
-		OutputDebugString( L"BClearRenderTarget - SetRenderTarget failed\n" );
+		OutputDebugString( "BClearRenderTarget - SetRenderTarget failed\n" );
 		return false;
 	}
 
 	if ( FAILED( m_pD3D9Device->SetDepthStencilSurface( m_pBackbufferDepth ) ) )
 	{
-		OutputDebugString( L"BClearRenderTarget Depth stencil surface\n" );
+		OutputDebugString( "BClearRenderTarget Depth stencil surface\n" );
 		return false;
 	}
 	return true;

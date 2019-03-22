@@ -68,7 +68,7 @@ extern "C" void __cdecl SteamAPIDebugTextHook( int nSeverity, const char *pchDeb
 {
 	// if you're running in the debugger, only warnings (nSeverity >= 1) will be sent
 	// if you add -debug_steamapi to the command-line, a lot of extra informational messages will also be sent
-	::OutputDebugString( pchDebugText );
+	OutputDebugString( pchDebugText );
 
 	if ( nSeverity >= 1 )
 	{
