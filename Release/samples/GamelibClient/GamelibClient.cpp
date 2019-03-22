@@ -327,9 +327,9 @@ public:
             m_need_caution_for_minors = entry[U("need_caution_for_minors")].as_bool();
             if (!entry[U("external_order_id")].is_null())
             {
-              std::stringstream ss;
-              ss << entry[U("external_order_id")];
-              m_external_order_id = utility::conversions::to_string_t(ss.str());
+				utility::stringstream_t ss;
+				ss << entry[U("external_order_id")];
+				m_external_order_id = utility::conversions::to_string_t(ss.str());
             }
         });
     }

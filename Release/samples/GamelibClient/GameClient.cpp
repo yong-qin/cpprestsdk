@@ -26,7 +26,7 @@ CGameClient* GameClient() { return g_pGameClient; }
 #define atoll _atoi64
 #endif
 
-extern void PurchaseFlow();
+extern int PurchaseFlow();
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
