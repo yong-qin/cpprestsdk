@@ -43,7 +43,8 @@ enum EClientGameState
   k_EClientMusic,
   k_EClientWorkshop,
   k_EClientHTMLSurface,
-  k_EClientInGameStore,
+  k_EClientInGameStoreGetAllItems,
+  k_EClientInGameStorePurchase,
 };
 
 class CMainMenu;

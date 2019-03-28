@@ -26,6 +26,7 @@ CGameClient* GameClient() { return g_pGameClient; }
 #define atoll _atoi64
 #endif
 
+extern int GetAllItems();
 extern int PurchaseFlow();
 
 //-----------------------------------------------------------------------------
@@ -105,8 +106,11 @@ void CGameClient::RunFrame()
       // Make sure the Steam Controller is in the correct mode.
       m_pGameEngine->SetSteamControllerActionSet( eControllerActionSet_MenuControls );
       break;
-      
-    case k_EClientInGameStore:
+    case k_EClientInGameStoreGetAllItems:
+      GetAllItems();
+      SetGameState(k_EClientGameMenu);
+      break;
+    case k_EClientInGameStorePurchase:
       PurchaseFlow();
       SetGameState(k_EClientGameMenu);
       break;

@@ -30,6 +30,17 @@ private:
                           OnGetAuthSessionTicketResponse,
                           GetAuthSessionTicketResponse_t,
                           m_CallbackGetAuthSessionTicketResponse);
+  
+    STEAM_CALLBACK_MANUAL(GamelibClient,
+                          OnSteamInventoryResult,
+                          SteamInventoryResultReady_t,
+                          m_SteamInventoryResult);
+  
+    STEAM_CALLBACK_MANUAL(GamelibClient,
+                          OnSteamInventoryFullUpdate,
+                          SteamInventoryFullUpdate_t,
+                          m_SteamInventoryFullUpdate);
+
 
     // initialize API
     utility::string_t m_private_key_pem;
@@ -238,8 +249,13 @@ public:
     {
         m_requestor_id = U("");
         if (m_initialized) return;
+        // init Steam callback
         m_CallbackMicroTxnAuthorizationResponse.Register(this, &GamelibClient::OnMicroTxnAuthorizationResponse);
         m_CallbackGetAuthSessionTicketResponse.Register(this, &GamelibClient::OnGetAuthSessionTicketResponse);
+      
+        m_SteamInventoryResult.Register(this, &GamelibClient::OnSteamInventoryResult);
+        m_SteamInventoryFullUpdate.Register(this, &GamelibClient::OnSteamInventoryFullUpdate);
+      
         // Get Steam ID
         CSteamID steam_id = SteamUser()->GetSteamID();
         uint64 steam_id_int = steam_id.ConvertToUint64();
@@ -358,7 +374,8 @@ void GamelibClient::OnMicroTxnAuthorizationResponse(MicroTxnAuthorizationRespons
   
     auto order_id = utility::conversions::to_string_t(std::to_string(pCallback->m_ulOrderID));
     if (pCallback->m_bAuthorized && m_external_order_id == order_id) {
-        m_commit_purchase = true;
+        //m_commit_purchase = true;
+        tce_txn.set();
     }
 }
 
@@ -367,7 +384,51 @@ void GamelibClient::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_
     ucout << U("GetAuthSessionTicketResponse!") << std::endl;
 }
 
+void GamelibClient::OnSteamInventoryResult(SteamInventoryResultReady_t* pCallback)
+{
+  ucout << U("OnSteamInventoryResult!") << std::endl;
+  if ( pCallback->m_result == k_EResultOK &&
+      SteamInventory()->CheckResultSteamID( pCallback->m_handle, SteamUser()->GetSteamID()) )
+  {
+    bool bGotResult = false;
+    std::vector<SteamItemDetails_t> vecDetails;
+    uint32 count = 0;
+    if ( SteamInventory()->GetResultItems( pCallback->m_handle, NULL, &count ) )
+    {
+      vecDetails.resize( count );
+      bGotResult = SteamInventory()->GetResultItems( pCallback->m_handle, vecDetails.data(), &count );
+    }
+    ucout << U("ResultItems.count:") << count << std::endl;
+
+    if ( bGotResult )
+    {
+      for ( size_t i = 0; i < vecDetails.size(); ++i )
+      {
+        ucout << U("ItemID:") << vecDetails[i].m_itemId;
+        ucout << std::endl;
+        // GetResultItemProperty
+      }
+    }
+  }
+  
+  // We're not hanging on the the result after processing it.
+  SteamInventory()->DestroyResult( pCallback->m_handle );
+
+}
+
+void GamelibClient::OnSteamInventoryFullUpdate(SteamInventoryFullUpdate_t* pCallback)
+{
+  ucout << U("OnSteamInventoryFullUpdate!") << std::endl;
+}
+
+
 GamelibClient gamelibclient;
+
+int GetAllItems()
+{
+  gamelibclient.init();
+  return SteamInventory()->GetAllItems(NULL);
+}
 
 int PurchaseFlow()
 {
@@ -386,6 +447,7 @@ int PurchaseFlow()
                          .then([&] { return gamelibclient.purchaseAPI(); })
                          .then([&] {
                              // wait for OnMicroTxnAuthorizationResponse callback
+                           
                              ucout << "Wait for OnMicroTxnAuthorizationResponse..." << std::endl;
                              do
                              {

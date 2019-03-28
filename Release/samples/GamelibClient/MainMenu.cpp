@@ -61,7 +61,9 @@ void CMainMenu::SetupMenu()
 		AddMenuItem( MenuItem_t( "HTML Page", k_EClientHTMLSurface ) );
 	}
 */
-	AddMenuItem( MenuItem_t( "In-game Purchase", k_EClientInGameStore ) );
+  AddMenuItem( MenuItem_t( "Steam GetAllItems", k_EClientInGameStoreGetAllItems) );
+
+	AddMenuItem( MenuItem_t( "Steam In-game Purchase", k_EClientInGameStorePurchase ) );
 
 	AddMenuItem( MenuItem_t( "Exit Game", k_EClientGameExiting ) );
 }
