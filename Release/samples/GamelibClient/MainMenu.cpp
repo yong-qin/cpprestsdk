@@ -9,6 +9,7 @@
 #include "stdafx.h"
 #include "MainMenu.h"
 
+extern int SkipSteamAPI;
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
@@ -61,8 +62,14 @@ void CMainMenu::SetupMenu()
 		AddMenuItem( MenuItem_t( "HTML Page", k_EClientHTMLSurface ) );
 	}
 */
-	AddMenuItem( MenuItem_t( "In-game Purchase", k_EClientInGameStore ) );
+   if (!SkipSteamAPI)
+   {
+		AddMenuItem( MenuItem_t( "Steam In-game Purchase", k_EClientInGameStoreSteam ) );
+	}
 
+#ifdef WIN32
+	AddMenuItem(MenuItem_t("Shift In-game Purchase", k_EClientInGameStoreShift));
+#endif
 	AddMenuItem( MenuItem_t( "Exit Game", k_EClientGameExiting ) );
 }
 

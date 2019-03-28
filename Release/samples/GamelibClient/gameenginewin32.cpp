@@ -22,6 +22,8 @@
 #define SAFE_RELEASE( x ) if ( 0 != ( x ) ) { ( x )->Release(); x = 0; }
 #endif
 
+extern int SkipSteamAPI;
+
 void OutputDebugString(const char* pchMsg) { 
 	OutputDebugStringA(pchMsg);
 }
@@ -709,7 +711,7 @@ bool CGameEngineWin32::StartFrame()
 		return false;
 
 	// Poll Steam Controllers
-	PollSteamInput();
+    PollSteamInput();
 
 	// Test that we haven't lost the device
 	HRESULT hRes = m_pD3D9Device->TestCooperativeLevel();
@@ -1912,6 +1914,7 @@ bool CGameEngineWin32::BIsSteamInputDeviceActive( )
 //-----------------------------------------------------------------------------
 void CGameEngineWin32::InitSteamInput( )
 {
+    if (SkipSteamAPI) return;
 	// Digital game actions
 	m_ControllerDigitalActionHandles[eControllerDigitalAction_TurnLeft] = SteamInput()->GetDigitalActionHandle( "turn_left" );
 	m_ControllerDigitalActionHandles[eControllerDigitalAction_TurnRight] = SteamInput()->GetDigitalActionHandle( "turn_right" );
@@ -1944,6 +1947,7 @@ void CGameEngineWin32::InitSteamInput( )
 //-----------------------------------------------------------------------------
 void CGameEngineWin32::FindActiveSteamInputDevice()
 {
+    if (SkipSteamAPI) return;
 	// Use the first available steam controller for all interaction. We can call this each frame to handle
 	// a controller disconnecting and a different one reconnecting. Handles are guaranteed to be unique for
 	// a given controller, even across power cycles.
@@ -1970,6 +1974,7 @@ void CGameEngineWin32::FindActiveSteamInputDevice()
 //--------------------------------------------------------------------------------------------------------------
 const char *CGameEngineWin32::GetTextStringForControllerOriginDigital( ECONTROLLERACTIONSET dwActionSet, ECONTROLLERDIGITALACTION dwDigitalAction )
 {
+    if (SkipSteamAPI) return "None";
 	EInputActionOrigin origins[STEAM_CONTROLLER_MAX_ORIGINS];
 	int nNumOrigins = SteamInput( )->GetDigitalActionOrigins( m_ActiveControllerHandle, m_ControllerActionSetHandles[dwActionSet], m_ControllerDigitalActionHandles[dwDigitalAction], origins );
 	if ( nNumOrigins )
@@ -1986,6 +1991,7 @@ const char *CGameEngineWin32::GetTextStringForControllerOriginDigital( ECONTROLL
 //--------------------------------------------------------------------------------------------------------------
 const char *CGameEngineWin32::GetTextStringForControllerOriginAnalog( ECONTROLLERACTIONSET dwActionSet, ECONTROLLERANALOGACTION dwDigitalAction )
 {
+    if (SkipSteamAPI) return "None";
 	EInputActionOrigin origins[STEAM_CONTROLLER_MAX_ORIGINS];
 	int nNumOrigins = SteamInput( )->GetAnalogActionOrigins( m_ActiveControllerHandle, m_ControllerActionSetHandles[dwActionSet], m_ControllerDigitalActionHandles[dwDigitalAction], origins );
 
@@ -2004,7 +2010,7 @@ const char *CGameEngineWin32::GetTextStringForControllerOriginAnalog( ECONTROLLE
 //-----------------------------------------------------------------------------
 void CGameEngineWin32::PollSteamInput()
 {
-
+    if (SkipSteamAPI) return;
 	// Each frame check our active controller handle
 	FindActiveSteamInputDevice();
 
@@ -2015,6 +2021,7 @@ void CGameEngineWin32::PollSteamInput()
 //-----------------------------------------------------------------------------
 void CGameEngineWin32::SetControllerColor( uint8 nColorR, uint8 nColorG, uint8 nColorB, unsigned int nFlags )
 {
+    if (SkipSteamAPI) return;
 	SteamInput()->SetLEDColor( m_ActiveControllerHandle, nColorR, nColorG, nColorB, nFlags );
 }
 
@@ -2023,6 +2030,7 @@ void CGameEngineWin32::SetControllerColor( uint8 nColorR, uint8 nColorG, uint8 n
 //-----------------------------------------------------------------------------
 void CGameEngineWin32::TriggerControllerVibration( unsigned short nLeftSpeed, unsigned short nRightSpeed )
 {
+    if (SkipSteamAPI) return;
 	SteamInput()->TriggerVibration( m_ActiveControllerHandle, nLeftSpeed, nRightSpeed );
 }
 
@@ -2031,6 +2039,7 @@ void CGameEngineWin32::TriggerControllerVibration( unsigned short nLeftSpeed, un
 //-----------------------------------------------------------------------------
 void CGameEngineWin32::TriggerControllerHaptics( ESteamControllerPad ePad, unsigned short usOnMicroSec, unsigned short usOffMicroSec, unsigned short usRepeat )
 {
+    if (SkipSteamAPI) return;
 	SteamInput()->TriggerRepeatedHapticPulse( m_ActiveControllerHandle, ePad, usOnMicroSec, usOffMicroSec, usRepeat, 0 );
 }
 
@@ -2039,6 +2048,7 @@ void CGameEngineWin32::TriggerControllerHaptics( ESteamControllerPad ePad, unsig
 //-----------------------------------------------------------------------------
 bool CGameEngineWin32::BIsControllerActionActive( ECONTROLLERDIGITALACTION dwAction )
 {
+    if (SkipSteamAPI) return false;
 	ControllerDigitalActionData_t digitalData = SteamInput( )->GetDigitalActionData( m_ActiveControllerHandle, m_ControllerDigitalActionHandles[dwAction] );
 
 	// Actions are only 'active' when they're assigned to a control in an action set, and that action set is active.
@@ -2053,6 +2063,7 @@ bool CGameEngineWin32::BIsControllerActionActive( ECONTROLLERDIGITALACTION dwAct
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 void CGameEngineWin32::GetControllerAnalogAction( ECONTROLLERANALOGACTION dwAction, float *x, float *y )
 {
+    if (SkipSteamAPI) return;
 	ControllerAnalogActionData_t analogData = SteamInput( )->GetAnalogActionData( m_ActiveControllerHandle, m_ControllerAnalogActionHandles[dwAction] );
 
 	// Actions are only 'active' when they're assigned to a control in an action set, and that action set is active.
@@ -2073,6 +2084,7 @@ void CGameEngineWin32::GetControllerAnalogAction( ECONTROLLERANALOGACTION dwActi
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 void CGameEngineWin32::SetSteamControllerActionSet( ECONTROLLERACTIONSET dwActionSet )
 {
+    if (SkipSteamAPI) return;
 	if ( m_ActiveControllerHandle == 0 )
 		return;
 
@@ -2086,6 +2098,7 @@ void CGameEngineWin32::SetSteamControllerActionSet( ECONTROLLERACTIONSET dwActio
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 void CGameEngineWin32::ActivateSteamControllerActionSetLayer( ECONTROLLERACTIONSET dwActionSetLayer )
 {
+    if (SkipSteamAPI) return;
 	if ( m_ActiveControllerHandle == 0 )
 		return;
 
@@ -2098,6 +2111,7 @@ void CGameEngineWin32::ActivateSteamControllerActionSetLayer( ECONTROLLERACTIONS
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 void CGameEngineWin32::DeactivateSteamControllerActionSetLayer( ECONTROLLERACTIONSET dwActionSetLayer )
 {
+    if (SkipSteamAPI) return;
 	if ( m_ActiveControllerHandle == 0 )
 		return;
 
@@ -2111,6 +2125,7 @@ void CGameEngineWin32::DeactivateSteamControllerActionSetLayer( ECONTROLLERACTIO
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 bool CGameEngineWin32::BIsActionSetLayerActive( ECONTROLLERACTIONSET dwActionSetLayer )
 {
+    if (SkipSteamAPI) return false;
 	if ( m_ActiveControllerHandle == 0 )
 		return false;
 

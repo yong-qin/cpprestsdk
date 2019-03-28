@@ -100,6 +100,11 @@ if (NOT WINDOWS_STORE AND NOT WINDOWS_PHONE)
     message(STATUS ${STEAM_LIBRARIES})
     message(STATUS ${STEAM_INCLUDE_DIR})
     
+    find_path(SHIFT_INCLUDE_DIR NAMES ShiftgamesAPI.h PATHS "./include/shift") 
+    find_library(SHIFT_LIBRARIES NAMES ShiftgamesAppSDKCpp.lib PATHS "./lib/shift/v141/x64/${CMAKE_BUILD_TYPE}")
+    message(STATUS ${SHIFT_LIBRARIES})
+    message(STATUS ${SHIFT_INCLUDE_DIR})
+
     set(programfilesx86 "ProgramFiles(x86)")
     set(DIRECTX_DIR "$ENV{${programfilesx86}}/Microsoft DirectX SDK (June 2010)")
     find_path(DX_INCLUDE_DIR NAMES d3d9.h d3dx9.h PATHS ${DIRECTX_DIR}/Include)
@@ -123,8 +128,8 @@ if (NOT WINDOWS_STORE AND NOT WINDOWS_PHONE)
       ${GAMELIBCLIENT_SOURCES}
     )
 
-    target_link_libraries(gamelibclient cpprest ${OPENSSL_LIBRARIES} ${STEAM_LIBRARIES} ${D3D9_LIBRARIES} ${D3DX9_LIBRARIES})
-    target_include_directories(gamelibclient PRIVATE ${OPENSSL_INCLUDE_DIR} ${STEAM_INCLUDE_DIR} ${DX_INCLUDE_DIR})
+    target_link_libraries(gamelibclient cpprest ${OPENSSL_LIBRARIES} ${STEAM_LIBRARIES} ${SHIFT_LIBRARIES} ${D3D9_LIBRARIES} ${D3DX9_LIBRARIES})
+    target_include_directories(gamelibclient PRIVATE ${OPENSSL_INCLUDE_DIR} ${STEAM_INCLUDE_DIR} ${SHIFT_INCLUDE_DIR} ${DX_INCLUDE_DIR})
 
     add_custom_command(
         TARGET gamelibclient POST_BUILD
@@ -137,6 +142,18 @@ if (NOT WINDOWS_STORE AND NOT WINDOWS_PHONE)
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/steam/win64/steam_api64.dll
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/steam_api64.dll
+    )
+    add_custom_command(
+        TARGET gamelibclient POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+	${CMAKE_CURRENT_SOURCE_DIR}/lib/shift/v141/x64/${CMAKE_BUILD_TYPE}/ShiftgamesAppSDKCpp.dll
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/ShiftgamesAppSDKCpp.dll
+    )
+    add_custom_command(
+        TARGET gamelibclient POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+	${CMAKE_CURRENT_SOURCE_DIR}/lib/shift/v141/x64/${CMAKE_BUILD_TYPE}/ShiftgamesAppSDKCore.dll
+	${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}/ShiftgamesAppSDKCore.dll
     )
 
   endif()

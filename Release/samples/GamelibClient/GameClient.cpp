@@ -8,7 +8,6 @@
 #include "stdafx.h"
 #include "GameClient.h"
 #include "MainMenu.h"
-#include "steam/steam_api.h"
 #include "stdlib.h"
 #include "time.h"
 #ifdef WIN32
@@ -26,7 +25,11 @@ CGameClient* GameClient() { return g_pGameClient; }
 #define atoll _atoi64
 #endif
 
-extern int PurchaseFlow();
+#ifdef WIN32
+extern int ShiftPurchaseFlow();
+#endif
+
+extern int SteamPurchaseFlow();
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -41,11 +44,7 @@ CGameClient::CGameClient( IGameEngine *pGameEngine )
 //-----------------------------------------------------------------------------
 void CGameClient::Init( IGameEngine *pGameEngine )
 {
-  if ( SteamUser()->BLoggedOn() )
-  {
-    //m_SteamIDLocalUser = SteamUser()->GetSteamID();
-    m_eGameState = k_EClientGameMenu;
-  }
+   m_eGameState = k_EClientGameMenu;
 #ifdef _PS3
   else
   {
@@ -106,8 +105,12 @@ void CGameClient::RunFrame()
       m_pGameEngine->SetSteamControllerActionSet( eControllerActionSet_MenuControls );
       break;
       
-    case k_EClientInGameStore:
-      PurchaseFlow();
+    case k_EClientInGameStoreSteam:
+      SteamPurchaseFlow();
+      SetGameState(k_EClientGameMenu);
+      break;
+    case k_EClientInGameStoreShift:
+      ShiftPurchaseFlow();
       SetGameState(k_EClientGameMenu);
       break;
     case k_EClientGameExiting:
