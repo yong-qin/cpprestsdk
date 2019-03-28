@@ -130,56 +130,59 @@ void RunGameLoop( IGameEngine *pGameEngine, const char *pchServerAddress, const 
 //-----------------------------------------------------------------------------
 #ifndef _PS3
 
+int SkipSteamAPI = 1;
+
 static int RealMain( const char *pchCmdLine, HINSTANCE hInstance, int nCmdShow )
 {
-	
-	if ( SteamAPI_RestartAppIfNecessary( k_uAppIdInvalid ) )
-	{
-		// if Steam is not running or the game wasn't started through Steam, SteamAPI_RestartAppIfNecessary starts the 
-		// local Steam client and also launches this game again.
+	if (!SkipSteamAPI)
+    {
+
+		if ( SteamAPI_RestartAppIfNecessary( k_uAppIdInvalid ) )
+		{
+			// if Steam is not running or the game wasn't started through Steam, SteamAPI_RestartAppIfNecessary starts the 
+			// local Steam client and also launches this game again.
 		
-		// Once you get a public Steam AppID assigned for this game, you need to replace k_uAppIdInvalid with it and
-		// removed steam_appid.txt from the game depot.
+			// Once you get a public Steam AppID assigned for this game, you need to replace k_uAppIdInvalid with it and
+			// removed steam_appid.txt from the game depot.
 
-		return EXIT_FAILURE;
+			return EXIT_FAILURE;
+		}
+
+		// Init Steam CEG
+		if ( !Steamworks_InitCEGLibrary() )
+		{
+			OutputDebugString( "Steamworks_InitCEGLibrary() failed\n" );
+			Alert( "Fatal Error", "Steam must be running to play this game (InitDrmLibrary() failed).\n" );
+			return EXIT_FAILURE;
+		}
+
+		// Initialize SteamAPI, if this fails we bail out since we depend on Steam for lots of stuff.
+		// You don't necessarily have to though if you write your code to check whether all the Steam
+		// interfaces are NULL before using them and provide alternate paths when they are unavailable.
+		//
+		// This will also load the in-game steam overlay dll into your process.  That dll is normally
+		// injected by steam when it launches games, but by calling this you cause it to always load,
+		// even when not launched via steam.
+		if ( !SteamAPI_Init() )
+		{
+			OutputDebugString( "SteamAPI_Init() failed\n" );
+			Alert( "Fatal Error", "Steam must be running to play this game (SteamAPI_Init() failed).\n" );
+			return EXIT_FAILURE;
+		}
+
+		// set our debug handler
+		SteamClient()->SetWarningMessageHook( &SteamAPIDebugTextHook );
+
+		// Ensure that the user has logged into Steam. This will always return true if the game is launched
+		// from Steam, but if Steam is at the login prompt when you run your game from the debugger, it
+		// will return false.
+		if ( !SteamUser()->BLoggedOn() )
+		{
+			OutputDebugString( "Steam user is not logged in\n" );
+			Alert( "Fatal Error", "Steam user must be logged in to play this game (SteamUser()->BLoggedOn() returned false).\n" );
+			return EXIT_FAILURE;
+		}
 	}
-	
-
-	// Init Steam CEG
-/*	if ( !Steamworks_InitCEGLibrary() )
-	{
-		OutputDebugString( "Steamworks_InitCEGLibrary() failed\n" );
-		Alert( "Fatal Error", "Steam must be running to play this game (InitDrmLibrary() failed).\n" );
-		return EXIT_FAILURE;
-	}
-*/
-	// Initialize SteamAPI, if this fails we bail out since we depend on Steam for lots of stuff.
-	// You don't necessarily have to though if you write your code to check whether all the Steam
-	// interfaces are NULL before using them and provide alternate paths when they are unavailable.
-	//
-	// This will also load the in-game steam overlay dll into your process.  That dll is normally
-	// injected by steam when it launches games, but by calling this you cause it to always load,
-	// even when not launched via steam.
-	if ( !SteamAPI_Init() )
-	{
-		OutputDebugString( "SteamAPI_Init() failed\n" );
-		Alert( "Fatal Error", "Steam must be running to play this game (SteamAPI_Init() failed).\n" );
-		return EXIT_FAILURE;
-	}
-
-	// set our debug handler
-	SteamClient()->SetWarningMessageHook( &SteamAPIDebugTextHook );
-
-	// Ensure that the user has logged into Steam. This will always return true if the game is launched
-	// from Steam, but if Steam is at the login prompt when you run your game from the debugger, it
-	// will return false.
-	if ( !SteamUser()->BLoggedOn() )
-	{
-		OutputDebugString( "Steam user is not logged in\n" );
-		Alert( "Fatal Error", "Steam user must be logged in to play this game (SteamUser()->BLoggedOn() returned false).\n" );
-		return EXIT_FAILURE;
-	}
-
 	// We are going to use the controller interface, initialize it, which is a seperate step as it 
 	// create a new thread in the game proc and we don't want to force that on games that don't
 	// have native Steam controller implementations
@@ -214,22 +217,27 @@ static int RealMain( const char *pchCmdLine, HINSTANCE hInstance, int nCmdShow )
 #error	Need CreateGameEngine()
 #endif
 
-	if ( !SteamInput()->Init() )
-	{
-		OutputDebugString( "SteamInput()->Init failed.\n" );
-		Alert( "Fatal Error", "SteamInput()->Init failed.\n" );
-		return EXIT_FAILURE;
+	if (!SkipSteamAPI)
+    {
+		if ( !SteamInput()->Init() )
+		{
+			OutputDebugString( "SteamInput()->Init failed.\n" );
+			Alert( "Fatal Error", "SteamInput()->Init failed.\n" );
+			return EXIT_FAILURE;
+		}
 	}
 
 	// This call will block and run until the game exits
 	RunGameLoop( pGameEngine, NULL, NULL );
 
-	// Shutdown the SteamAPI
-	SteamAPI_Shutdown();
+	if (!SkipSteamAPI)
+    {
+		// Shutdown the SteamAPI
+		SteamAPI_Shutdown();
 
-	// Shutdown Steam CEG
-//	Steamworks_TermCEGLibrary();
-
+		// Shutdown Steam CEG
+		Steamworks_TermCEGLibrary();
+	}
 	// exit
 	return EXIT_SUCCESS;	
 }

@@ -1,10 +1,14 @@
 #include "cpprest/http_client.h"
 #include "steam/steam_api.h"
+#ifdef WIN32
+#include "ShiftgamesAPI.h"
+#endif
 #include <boost/locale.hpp>
 #include <chrono>
-#include <thread>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <thread>
 #include <openssl/md5.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
@@ -14,6 +18,8 @@ using namespace web;
 using namespace web::http;
 using namespace web::http::client;
 using namespace web::http::oauth1::experimental;
+
+extern int SkipSteamAPI;
 
 #define PRIVATE_KEY_SIZE 1024
 class GamelibClient
@@ -41,6 +47,8 @@ private:
                           SteamInventoryFullUpdate_t,
                           m_SteamInventoryFullUpdate);
 
+    // gamelib header
+    utility::string_t m_store_type;
 
     // initialize API
     utility::string_t m_private_key_pem;
@@ -52,15 +60,20 @@ private:
     utility::string_t m_purchase_id;
     bool m_need_caution_for_minors;
     utility::string_t m_external_order_id;
-  
+
+    // steam
     utility::string_t m_steam_id;
     utility::string_t m_session_ticket;
     utility::string_t m_language;
-  
-    bool m_commit_purchase = false;
-  
+
+    bool m_steam_txn_authorized = false;
+
+    // shift
+    utility::string_t m_shift_id_token;
+
+
     bool m_initialized = false;
-  
+
     bool _generate_rsa_keypair(utility::string_t& private_key_pem, utility::string_t& public_key_pem)
     {
         bool ret = false;
@@ -146,7 +159,7 @@ private:
         utility::datetime datetime = utility::datetime::utc_now();
         auto datetime_str = datetime.to_string(utility::datetime::ISO_8601);
         auto str = datetime_str.substr(0, 4) + datetime_str.substr(5, 2) + datetime_str.substr(8, 2) +
-                        datetime_str.substr(11, 2) + datetime_str.substr(14, 2) + datetime_str.substr(17, 2);
+                   datetime_str.substr(11, 2) + datetime_str.substr(14, 2) + datetime_str.substr(17, 2);
         auto token_str = boost::locale::conv::utf_to_utf<char>(str);
         unsigned char digest_array[MD5_DIGEST_LENGTH];
         MD5((unsigned char*)token_str.c_str(), token_str.length(), digest_array);
@@ -158,19 +171,19 @@ private:
         return utility::conversions::to_string_t(ss1.str());
     }
 
-    utility::string_t _build_gamelib_header()
+    utility::string_t _build_gamelib_header(utility::string_t storeType)
     {
         std::map<utility::string_t, utility::string_t> queries_map;
         queries_map[U("authVersion")] = U("1.0");
         queries_map[U("paymentVersion")] = U("1.0");
         queries_map[U("paymentApiToken")] = _generate_payment_api_token();
         queries_map[U("appVersion")] = U("1.0");
-        queries_map[U("uaType")] = U("windows-app");
+        queries_map[U("uaType")] = U("pc-app"); // U("windows-app");
         queries_map[U("carrier")] = U("");
         queries_map[U("compromised")] = U("false");
         queries_map[U("countryCode")] = U("JP");
         queries_map[U("currencyCode")] = U("JPY");
-        queries_map[U("storeType")] = U("steam");
+        queries_map[U("storeType")] = storeType;
         queries_map[U("policy")] = U("");
 
         std::vector<utility::string_t> queries;
@@ -227,7 +240,7 @@ private:
                    request.set_request_uri(uri);
                    request.headers().add(U("Content-Type"), std::move(U("application/json; charset=UTF-8")));
                    request.headers().add(U("User-Agent"), std::move(U("Gamelib windows sdk")));
-                   request.headers().add(U("X-GREE-GAMELIB"), std::move(_build_gamelib_header()));
+                   request.headers().add(U("X-GREE-GAMELIB"), std::move(_build_gamelib_header(m_store_type)));
                    if (!params.is_null())
                    {
                        request.set_body(params);
@@ -245,11 +258,15 @@ private:
     }
 
 public:
-    void init()
+    void init(utility::string_t storeType)
     {
         m_requestor_id = U("");
+        m_store_type = storeType;
+
         if (m_initialized) return;
         // init Steam callback
+        if (SkipSteamAPI) return;
+
         m_CallbackMicroTxnAuthorizationResponse.Register(this, &GamelibClient::OnMicroTxnAuthorizationResponse);
         m_CallbackGetAuthSessionTicketResponse.Register(this, &GamelibClient::OnGetAuthSessionTicketResponse);
       
@@ -270,11 +287,11 @@ public:
         std::stringstream ss;
         for (int i = 0; i < (int)ticket_len; i++)
         {
-          ss << std::setfill('0') << std::setw(2) << std::hex << +ticket[i];
+            ss << std::setfill('0') << std::setw(2) << std::hex << +ticket[i];
         }
         m_session_ticket = utility::conversions::to_string_t(ss.str());
         ucout << "Session Ticket:" << m_session_ticket << std::endl;
-      
+
         // Get Current Game Language
         const char* lang = SteamApps()->GetCurrentGameLanguage();
         ucout << "Language:" << lang << std::endl;
@@ -329,23 +346,37 @@ public:
         params[U("translated_name")] = json::value::string(U(""));
         params[U("formatted_price")] = json::value::string(U(""));
         params[U("price")] = json::value::string(U("100"));
-        params[U("id_token")] = json::value::string(m_steam_id); // steam ID
-      
+        if (m_store_type == U("steam"))
+        {
+            params[U("id_token")] = json::value::string(m_steam_id); // steam ID
+        }
+        else if (m_store_type == U("shift"))
+        {
+            params[U("id_token")] = json::value::string(m_shift_id_token);
+        }
+
         m_purchase_id = U("");
         m_need_caution_for_minors = false;
         m_external_order_id = U("");
-        m_commit_purchase = false;
-      
+        m_steam_txn_authorized = false;
+
         return _request(U("/v1.0/payment/purchase"), methods::POST, params).then([=](json::value response_json) {
             ucout << response_json.serialize() << std::endl;
             json::value entry = response_json[U("entry")];
+            if (entry.is_null()) return;
+
             m_purchase_id = entry[U("purchase_id")].as_string();
             m_need_caution_for_minors = entry[U("need_caution_for_minors")].as_bool();
-            if (!entry[U("external_order_id")].is_null())
+            auto external_order_id = entry[U("external_order_id")];
+            if (!external_order_id.is_null() && external_order_id.is_integer())
             {
-				utility::stringstream_t ss;
-				ss << entry[U("external_order_id")];
-				m_external_order_id = utility::conversions::to_string_t(ss.str());
+                utility::stringstream_t ss;
+                ss << entry[U("external_order_id")];
+                m_external_order_id = utility::conversions::to_string_t(ss.str());
+            }
+            else if (!external_order_id.is_null() && external_order_id.is_string())
+            {
+                m_external_order_id = external_order_id.as_string();
             }
         });
     }
@@ -355,14 +386,56 @@ public:
         json::value params;
         params[U("purchase_id")] = json::value::string(m_purchase_id);
         params[U("receipt")] = json::value::string(U(""));
-        params[U("id_token")] = json::value::string(m_steam_id); // steam ID
+        if (m_store_type == U("steam"))
+        {
+            params[U("id_token")] = json::value::string(m_steam_id); // steam ID
+        }
+        else if (m_store_type == U("shift"))
+        {
+            params[U("id_token")] = json::value::string(m_shift_id_token);
+        }
 
         return _request(U("/v1.0/payment/purchase/commit"), methods::POST, params).then([=](json::value response_json) {
             ucout << response_json.serialize() << std::endl;
         });
     }
 
-    bool isCommitPurchase() { return m_commit_purchase; }
+    bool isSteamTxnAuthorized()
+    {
+ 		return m_steam_txn_authorized; 
+	}
+
+#ifdef WIN32
+    pplx::task<void> initShift()
+    {
+        return pplx::create_task([&]() { Shiftgames::API::Init([&]() {}); });
+    }
+
+    pplx::task<void> requestShiftIDToken()
+    {
+        m_shift_id_token = U("");
+        pplx::task_completion_event<void> tce;
+        Shiftgames::API::ConfirmUserAuthentication([=](const Shiftgames::UserAuthentication& userAuth) {
+            // get shift id token
+            m_shift_id_token = utility::conversions::to_string_t(userAuth.getIDToken());
+            tce.set();
+        });
+        return pplx::create_task(tce);
+        ;
+    }
+
+    pplx::task<void> runShiftPaymentProcess()
+    {
+        pplx::task_completion_event<void> tce;
+        auto order_id = boost::locale::conv::utf_to_utf<char>(m_external_order_id);
+        Shiftgames::API::RunPaymentProcess(order_id, [=](std::string orderID) {
+            ucout << "order id:" << utility::conversions::to_string_t(orderID) << std::endl;
+            tce.set();
+        });
+        return pplx::create_task(tce);
+    }
+
+#endif
 };
 
 void GamelibClient::OnMicroTxnAuthorizationResponse(MicroTxnAuthorizationResponse_t* pCallback)
@@ -371,11 +444,11 @@ void GamelibClient::OnMicroTxnAuthorizationResponse(MicroTxnAuthorizationRespons
     ucout << U("AppID:") << pCallback->m_unAppID << std::endl;
     ucout << U("OrderID:") << pCallback->m_ulOrderID << std::endl;
     ucout << U("Authorized:") << pCallback->m_bAuthorized << std::endl;
-  
+
     auto order_id = utility::conversions::to_string_t(std::to_string(pCallback->m_ulOrderID));
-    if (pCallback->m_bAuthorized && m_external_order_id == order_id) {
-        //m_commit_purchase = true;
-        tce_txn.set();
+    if (pCallback->m_bAuthorized && m_external_order_id == order_id)
+    {
+        m_steam_txn_authorized = true;
     }
 }
 
@@ -384,6 +457,7 @@ void GamelibClient::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_
     ucout << U("GetAuthSessionTicketResponse!") << std::endl;
 }
 
+<<<<<<< HEAD
 void GamelibClient::OnSteamInventoryResult(SteamInventoryResultReady_t* pCallback)
 {
   ucout << U("OnSteamInventoryResult!") << std::endl;
@@ -430,13 +504,14 @@ int GetAllItems()
   return SteamInventory()->GetAllItems(NULL);
 }
 
-int PurchaseFlow()
+GamelibClient gamelibclient;
+
+int SteamPurchaseFlow()
 {
-    // The dialog to open. Valid options are: "friends", "community", "players", "settings", "officialgamegroup", "stats", "achievements".
-    // SteamFriends()->ActivateGameOverlay( "community" );
     try
     {
-        gamelibclient.init();
+        gamelibclient.init(U("steam"));
+
         // initizalize & authorize API
         auto tasks = gamelibclient.initializeAPI()
                          .then([&](utility::string_t uuid) {
@@ -453,18 +528,45 @@ int PurchaseFlow()
                              {
                                  SteamAPI_RunCallbacks();
                                  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                             } while (!gamelibclient.isCommitPurchase());
+                             } while (!gamelibclient.isSteamTxnAuthorized());
                          })
                          .then([&] { return gamelibclient.commitAPI(); })
-
+                         .then([&] { return gamelibclient.balanceAPI(); })
                          ;
- 
-        //tasks.wait();
     }
     catch (const std::exception& e)
     {
         ucout << "Error " << e.what() << std::endl;
     }
-    //SteamAPI_Shutdown();
     return 0;
 }
+
+#ifdef WIN32
+int ShiftPurchaseFlow()
+{
+    try
+    {
+        gamelibclient.init(U("shift"));
+
+        // initizalize & authorize API
+        auto tasks = gamelibclient.initShift()
+                         .then([&] { return gamelibclient.initializeAPI(); })
+                         .then([&](utility::string_t uuid) {
+                             ucout << U("uuid=") << uuid << std::endl;
+                             return gamelibclient.authorizeAPI();
+                         })
+                         .then([&] { return gamelibclient.balanceAPI(); })
+                         .then([&] { return gamelibclient.requestShiftIDToken(); })
+                         .then([&] { return gamelibclient.purchaseAPI(); })
+                         .then([&] { return gamelibclient.runShiftPaymentProcess(); })
+                         .then([&] { return gamelibclient.commitAPI(); })
+                         .then([&] { return gamelibclient.balanceAPI(); })
+					     ;
+    }
+    catch (const std::exception& e)
+    {
+        ucout << "Error " << e.what() << std::endl;
+    }
+    return 0;
+}
+#endif

@@ -44,7 +44,8 @@ enum EClientGameState
   k_EClientWorkshop,
   k_EClientHTMLSurface,
   k_EClientInGameStoreGetAllItems,
-  k_EClientInGameStorePurchase,
+  k_EClientInGameStoreSteam,
+  k_EClientInGameStoreShift,
 };
 
 class CMainMenu;
