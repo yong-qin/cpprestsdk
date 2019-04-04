@@ -113,7 +113,9 @@ void CGameClient::RunFrame()
       SetGameState(k_EClientGameMenu);
       break;
     case k_EClientInGameStoreShift:
+#ifdef WIN32
       ShiftPurchaseFlow();
+#endif
       SetGameState(k_EClientGameMenu);
       break;
     case k_EClientGameExiting:

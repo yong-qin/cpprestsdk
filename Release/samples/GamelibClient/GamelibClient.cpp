@@ -457,7 +457,6 @@ void GamelibClient::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_
     ucout << U("GetAuthSessionTicketResponse!") << std::endl;
 }
 
-<<<<<<< HEAD
 void GamelibClient::OnSteamInventoryResult(SteamInventoryResultReady_t* pCallback)
 {
   ucout << U("OnSteamInventoryResult!") << std::endl;
@@ -500,11 +499,9 @@ GamelibClient gamelibclient;
 
 int GetAllItems()
 {
-  gamelibclient.init();
+  gamelibclient.init(U("steam"));
   return SteamInventory()->GetAllItems(NULL);
 }
-
-GamelibClient gamelibclient;
 
 int SteamPurchaseFlow()
 {
