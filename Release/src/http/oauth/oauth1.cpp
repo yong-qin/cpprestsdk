@@ -15,8 +15,6 @@
 
 #include "cpprest/asyncrt_utils.h"
 
-#include <boost/locale.hpp>
-
 #if !defined(CPPREST_TARGET_XP)
 
 using namespace utility;
@@ -161,8 +159,8 @@ std::vector<unsigned char> oauth1_config::_hmac_sha1(const utility::string_t& ke
 
 std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key_pem_t, const utility::string_t& data_t)
 {
-    auto key_pem = boost::locale::conv::utf_to_utf<char>(key_pem_t);
-    auto data = boost::locale::conv::utf_to_utf<char>(data_t);
+    auto key_pem = utility::conversions::to_utf8string(std::move(key_pem_t));
+    auto data = utility::conversions::to_utf8string(std::move(data_t));
 
     unsigned char digest[SHA_DIGEST_LENGTH];
     SHA1((unsigned char *)data.c_str(), data.length(), digest);
@@ -187,7 +185,7 @@ std::vector<unsigned char> oauth1_config::_rsa_sha1(const utility::string_t& key
         free(signature);
         return std::vector<unsigned char>();
     }
-    auto signature_vec = std::vector<unsigned char>(signature,  signature + signature_len);
+    auto signature_vec = std::vector<unsigned char>(signature, signature + signature_len);
     BIO_free_all(key_bio);
     RSA_free(key);
     free(signature);
@@ -445,7 +443,7 @@ void oauth1_config::_authenticate_request(http_request& request, oauth1_state st
         authHeader += _XPLATSTR("\", ");
     }
 
-    if (m_is_gamelib_extend && !m_requestor_id.empty() && !m_token.secret().empty())
+    if (m_is_gamelib_extend && !m_token.secret().empty())
     {
         utility::string_t as_str = consumer_secret() + state.timestamp();
         m_as_hash.assign(utility::conversions::to_base64(_rsa_sha1(m_token.secret(), as_str)));
